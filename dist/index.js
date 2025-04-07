@@ -45541,7 +45541,7 @@ function extractTypescriptCode(response) {
  * 2. A user (human) prompt with LangChain placeholders.
  * 3. The chain’s invoke function to provide the input data (via placeholder substitution).
  */
-async function generateTypescript(basePython, newPython, diffText, currentTypescript, llmConfig) {
+async function generateTypescript(basePython, newPython, diffText, currentTypescript, llmConfig, customPrompt) {
     // Create the LLM client from the configuration
     const llm = createLLMClient(llmConfig);
     // Define a static system prompt (background context and rules)
@@ -45560,6 +45560,7 @@ I will provide:
 2. The new Python Pydantic models
 3. A diff showing what changed
 4. The current TypeScript adaptation
+5. An optional custom rule/message might be provided as an additional instruction.
 
 # TASK
 Generate an updated version of the TypeScript that:
@@ -45595,6 +45596,11 @@ Ensure the code is valid and can be saved directly to a file.
 {currentTypescript}
 \`\`\`
 
+5. Custom rule/message (if provided):
+\`\`\`
+{customPrompt}
+\`\`\`
+
 # Reminder: TASK
 Generate an updated version of the TypeScript that:
 - Incorporates all changes from the Python models (added/removed/modified fields or models).
@@ -45619,6 +45625,7 @@ Ensure the code is valid and can be saved directly to a file.
         newPython,
         diff: diffText,
         currentTypescript,
+        customPrompt,
     });
     // Extract TypeScript code from the LLM response and return it.
     return extractTypescriptCode(response);
@@ -45688,8 +45695,9 @@ async function run() {
             required: true,
         });
         const modelProvider = core.getInput("model-provider") || "anthropic";
-        const modelName = core.getInput("model-name") || "claude-3-haiku-20240307";
+        const modelName = core.getInput("model-name") || "claude-3-7-sonnet-latest";
         const temperature = parseFloat(core.getInput("temperature") || "0.1");
+        const customPrompt = core.getInput("custom-prompt") || "";
         // Get API keys
         const anthropicApiKey = core.getInput("anthropic-api-key");
         const openaiApiKey = core.getInput("openai-api-key");
@@ -45716,7 +45724,7 @@ async function run() {
             anthropicApiKey,
             openaiApiKey,
             temperature,
-        });
+        }, customPrompt);
         // Write output file
         core.info(`Writing output to ${outputTypescriptFile}...`);
         await fs.writeFile(outputTypescriptFile, updatedTypescript);
