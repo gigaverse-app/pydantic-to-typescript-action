@@ -22,7 +22,7 @@ inputs:
   model-name:
     description: 'Specific model to use'
     required: false
-    default: 'claude-3-haiku-20240307'
+    default: 'claude-sonnet-latest'
   anthropic-api-key:
     description: 'Anthropic API key'
     required: false
