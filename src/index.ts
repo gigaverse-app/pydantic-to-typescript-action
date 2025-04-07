@@ -3,7 +3,7 @@ import * as fs from "fs/promises";
 import path from "path";
 import { createDiff, generateTypescript } from "./converter";
 
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
   try {
     // Get inputs
     const basePythonFile = core.getInput("base-python-file", {
@@ -102,4 +102,5 @@ async function validateFilePath(
   }
 }
 
+// Execute the run function
 void run();
