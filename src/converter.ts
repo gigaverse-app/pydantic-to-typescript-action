@@ -1,9 +1,9 @@
-import * as diff from 'diff';
-import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { StringOutputParser } from '@langchain/core/output_parsers';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import * as diff from "diff";
+import { ChatAnthropic } from "@langchain/anthropic";
+import { ChatOpenAI } from "@langchain/openai";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
 export type LLMConfig = {
   provider: string;
@@ -17,9 +17,9 @@ export type LLMConfig = {
  * Create a diff between two files
  */
 export function createDiff(
-  file1Path: string, 
-  file1Content: string, 
-  file2Path: string, 
+  file1Path: string,
+  file1Content: string,
+  file2Path: string,
   file2Content: string
 ): string {
   // First create the standard patch
@@ -27,15 +27,15 @@ export function createDiff(
     file1Path,
     file1Content,
     file2Content,
-    'Original',
-    'Modified'
+    "Original",
+    "Modified",
   );
   
   // Convert to Git-style diff format
   const gitStyleDiff = `diff --git a/${file1Path} b/${file2Path}
 --- a/${file1Path}
 +++ b/${file2Path}
-${standardPatch.split('\n').slice(4).join('\n')}`;
+${standardPatch.split("\n").slice(4).join("\n")}`;
 
   return gitStyleDiff;
 }
@@ -45,9 +45,11 @@ ${standardPatch.split('\n').slice(4).join('\n')}`;
  * Exported to allow mocking in tests
  */
 export function createLLMClient(config: LLMConfig): BaseChatModel {
-  if (config.provider === 'anthropic') {
+  if (config.provider === "anthropic") {
     if (!config.anthropicApiKey) {
-      throw new Error('Anthropic API key is required when using Anthropic provider');
+      throw new Error(
+        "Anthropic API key is required when using Anthropic provider",
+      );
     }
     
     return new ChatAnthropic({
@@ -55,9 +57,9 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
       modelName: config.model,
       temperature: config.temperature,
     });
-  } else if (config.provider === 'openai') {
+  } else if (config.provider === "openai") {
     if (!config.openaiApiKey) {
-      throw new Error('OpenAI API key is required when using OpenAI provider');
+      throw new Error("OpenAI API key is required when using OpenAI provider");
     }
     
     return new ChatOpenAI({
@@ -135,7 +137,9 @@ ${currentTypescript}
  */
 function extractTypescriptCode(response: string): string {
   // Check if the response is wrapped in code blocks
-  const typescriptBlockMatch = response.match(/```typescript\s*([\s\S]*?)\s*```/);
+  const typescriptBlockMatch = response.match(
+    /```typescript\s*([\s\S]*?)\s*```/,
+  );
   if (typescriptBlockMatch && typescriptBlockMatch[1]) {
     return typescriptBlockMatch[1].trim();
   }
@@ -147,7 +151,10 @@ function extractTypescriptCode(response: string): string {
   }
   
   // If no code blocks, assume the whole response is code (trimming potential explanatory text)
-  return response.replace(/^(.*?)```/s, '').replace(/```.*$/s, '').trim();
+  return response
+    .replace(/^(.*?)```/s, "")
+    .replace(/```.*$/s, "")
+    .trim();
 }
 
 /**
@@ -158,7 +165,7 @@ export async function generateTypescript(
   newPython: string,
   diff: string,
   currentTypescript: string,
-  llmConfig: LLMConfig
+  llmConfig: LLMConfig,
 ): Promise<string> {
   // Create LLM client
   const llm = createLLMClient(llmConfig);
