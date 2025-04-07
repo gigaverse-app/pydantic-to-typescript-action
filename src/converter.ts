@@ -22,7 +22,8 @@ export function createDiff(
   file2Path: string, 
   file2Content: string
 ): string {
-  const patch = diff.createPatch(
+  // First create the standard patch
+  const standardPatch = diff.createPatch(
     file1Path,
     file1Content,
     file2Content,
@@ -30,7 +31,13 @@ export function createDiff(
     'Modified'
   );
   
-  return patch;
+  // Convert to Git-style diff format
+  const gitStyleDiff = `diff --git a/${file1Path} b/${file2Path}
+--- a/${file1Path}
++++ b/${file2Path}
+${standardPatch.split('\n').slice(4).join('\n')}`;
+
+  return gitStyleDiff;
 }
 
 /**
