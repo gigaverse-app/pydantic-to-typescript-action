@@ -42,8 +42,9 @@ ${standardPatch.split('\n').slice(4).join('\n')}`;
 
 /**
  * Create an LLM client based on the provider
+ * Exported to allow mocking in tests
  */
-function createLLMClient(config: LLMConfig): BaseChatModel {
+export function createLLMClient(config: LLMConfig): BaseChatModel {
   if (config.provider === 'anthropic') {
     if (!config.anthropicApiKey) {
       throw new Error('Anthropic API key is required when using Anthropic provider');

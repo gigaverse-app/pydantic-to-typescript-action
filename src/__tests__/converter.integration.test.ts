@@ -1,8 +1,13 @@
-import { BaseChatModel, BaseChatModelCallOptions } from "langchain/chat_models/base";
-import { BaseMessage, AIMessage } from "langchain/schema";
-import { ChatResult, ChatGeneration } from "langchain/schema";
-import { CallbackManagerForLLMRun } from "langchain/callbacks";
-import { generateTypescript } from '../converter';
+import { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { BaseMessage, AIMessage } from "@langchain/core/messages";
+import { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
+import { ChatResult, ChatGeneration } from "@langchain/core/outputs";
+import * as converter from '../converter';
+
+// Define a base model call options type
+interface BaseChatModelCallOptions {
+  [key: string]: any;
+}
 
 // Mock LLM implementation for testing
 class MockLLM extends BaseChatModel<BaseChatModelCallOptions> {
@@ -20,7 +25,7 @@ class MockLLM extends BaseChatModel<BaseChatModelCallOptions> {
 
   async _generate(
     messages: BaseMessage[],
-    options: this["ParsedCallOptions"],
+    options: any,
     runManager?: CallbackManagerForLLMRun
   ): Promise<ChatResult> {
     // Create proper AIMessage
@@ -41,32 +46,46 @@ class MockLLM extends BaseChatModel<BaseChatModelCallOptions> {
     input: BaseMessage[] | string,
     options?: BaseChatModelCallOptions
   ): Promise<AIMessage> {
-    // Handle string or BaseMessage[] input
-    const messages = typeof input === "string" ? [new AIMessage(input)] : input;
-    
     // Return a proper AIMessage
-    return new AIMessage({
-      content: this.mockResponse,
-    });
+    return new AIMessage(this.mockResponse);
+  }
+
+  // Implement required abstract methods to satisfy TS
+  _combineLLMOutput() {
+    return {};
+  }
+
+  get parseCallOptions() {
+    return (options: any) => options || {};
   }
 }
 
 describe('LLM Integration Tests', () => {
-  describe('generateTypescript', () => {
-    it('should generate TypeScript code from Python models', async () => {
-      // Mock TypeScript output
-      const mockOutput = `
+  // Save original function to restore after tests
+  const originalCreateLLMClient = (converter as any).createLLMClient;
+  
+  // Setup mock before tests
+  beforeEach(() => {
+    // Mock the internal createLLMClient function
+    (converter as any).createLLMClient = jest.fn().mockImplementation(() => {
+      return new MockLLM(`
 export interface User {
   id: number;
   name: string;
   email: string;
   age?: number;
 }
-`;
-      
-      // Create mock LLM
-      const llm = new MockLLM(mockOutput);
-      
+      `);
+    });
+  });
+  
+  // Restore original function after tests
+  afterEach(() => {
+    (converter as any).createLLMClient = originalCreateLLMClient;
+  });
+  
+  describe('generateTypescript', () => {
+    it('should generate TypeScript code from Python models', async () => {
       // Sample Python models
       const basePython = `
 class User(BaseModel):
@@ -106,32 +125,24 @@ export interface User {
 }
 `;
       
-      // Mock the createLLMClient function by manipulating the scope
-      // This is a bit hacky, but it's just for the test
-      const originalCreateLLMClient = require('../converter').__createLLMClient;
-      require('../converter').__createLLMClient = () => llm;
+      // Generate TypeScript
+      const result = await converter.generateTypescript(
+        basePython,
+        newPython,
+        diff,
+        currentTypescript,
+        {
+          provider: 'anthropic',
+          model: 'mock-model',
+          temperature: 0.1,
+          // No API keys needed because we've mocked the client creation
+        }
+      );
       
-      try {
-        // Generate TypeScript
-        const result = await generateTypescript(
-          basePython,
-          newPython,
-          diff,
-          currentTypescript,
-          {
-            provider: 'anthropic',
-            model: 'mock-model',
-            temperature: 0.1,
-          }
-        );
-        
-        // Verify result
-        expect(result).toContain('interface User');
-        expect(result).toContain('age?: number');
-      } finally {
-        // Restore original function
-        require('../converter').__createLLMClient = originalCreateLLMClient;
-      }
+      // Verify result contains expected TypeScript content
+      expect(result).toContain('interface User');
+      expect(result).toContain('id: number');
+      expect(result).toContain('age?: number');
     });
   });
 });
