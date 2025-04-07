@@ -97,6 +97,7 @@ describe("index.ts", () => {
         temperature: 0.1,
       },
       "",
+      undefined,
     );
 
     // Verify output was written

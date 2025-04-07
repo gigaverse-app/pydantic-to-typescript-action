@@ -1,4 +1,3 @@
-
 # Python Pydantic to TypeScript LLM Converter
 
 A GitHub Action that uses an LLM (Claude or GPT) to intelligently convert Python Pydantic models to TypeScript interfaces, maintaining styling and conventions.
@@ -12,6 +11,8 @@ A GitHub Action that uses an LLM (Claude or GPT) to intelligently convert Python
 - Completely customizable with fine-grained control over the LLM parameters
 - Accepts an _optional_ custom rule/message for extra generation instructions  
   _(Example: "Completely regenerate the .ts typescript file from the ground up from the new python file")_
+- Supports _optional_ LangSmith tracing: if you provide a LangSmith API key, the action automatically logs LLM calls to LangSmith. You can optionally specify the project name; the run name is set to the base Python file’s name.
+- Verbose logging: when enabled (default is `true`), the system message, user message, and LLM output are printed to the logs for debugging
 
 ## Usage
 
@@ -53,6 +54,11 @@ jobs:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           # Optional custom rule/message:
           # custom-prompt: "Completely regenerate the .ts typescript file from the ground up from the new python file"
+          # Optional LangSmith tracing (if desired):
+          # langsmith-api-key: ${{ secrets.LANGSMITH_API_KEY }}
+          # langsmith-project: "my-custom-project"
+          # Optional verbose logging:
+          # verbose: "true"
 ```
 
 ### Workflow for Multiple Repositories
@@ -103,8 +109,13 @@ jobs:
           output-typescript-file: 'frontend-repo/src/types/schema.ts'
           model-provider: 'anthropic'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Optional custom rule/message can also be provided here:
+          # Optional custom rule/message:
           # custom-prompt: "Add full documentation in pirate speak arrhhh"
+          # Optional LangSmith tracing:
+          # langsmith-api-key: ${{ secrets.LANGSMITH_API_KEY }}
+          # langsmith-project: "my-custom-project"
+          # Optional verbose logging:
+          # verbose: "true"
 
       # Create a PR in the frontend repo
       - name: Create Pull Request
@@ -123,18 +134,40 @@ jobs:
 
 ## Inputs
 
-| Input                     | Description                                                                                                 | Required | Default                        |
-|---------------------------|-------------------------------------------------------------------------------------------------------------|----------|--------------------------------|
-| `base-python-file`        | Path to the base Python Pydantic file                                                                       | Yes      |                                |
-| `new-python-file`         | Path to the new Python Pydantic file                                                                        | Yes      |                                |
-| `current-typescript-file` | Path to the current TypeScript file                                                                         | Yes      |                                |
-| `output-typescript-file`  | Path to the output TypeScript file                                                                          | Yes      |                                |
-| `model-provider`          | LLM provider to use (anthropic or openai)                                                                   | No       | `anthropic`                    |
-| `model-name`              | Specific model to use                                                                                       | No       | `claude-3-7-sonnet-latest`     |
-| `anthropic-api-key`       | Anthropic API key                                                                                           | No       |                                |
-| `openai-api-key`          | OpenAI API key                                                                                              | No       |                                |
-| `temperature`             | Temperature for the LLM (0.0-1.0)                                                                           | No       | `0.1`                          |
-| `custom-prompt`           | Optional custom rule/message to be appended as additional instruction to the LLM.                           | No       |                                |
+| Input                     | Description                                                                                                                      | Required | Default                        |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------------------|----------|--------------------------------|
+| `base-python-file`        | Path to the base Python Pydantic file                                                                                            | Yes      |                                |
+| `new-python-file`         | Path to the new Python Pydantic file                                                                                             | Yes      |                                |
+| `current-typescript-file` | Path to the current TypeScript file                                                                                              | Yes      |                                |
+| `output-typescript-file`  | Path to the output TypeScript file                                                                                               | Yes      |                                |
+| `model-provider`          | LLM provider to use (anthropic or openai)                                                                                       | No       | `anthropic`                    |
+| `model-name`              | Specific model to use                                                                                                            | No       | `claude-3-haiku-20240307`      |
+| `anthropic-api-key`       | Anthropic API key                                                                                                                | No       |                                |
+| `openai-api-key`          | OpenAI API key                                                                                                                   | No       |                                |
+| `temperature`             | Temperature for the LLM (0.0-1.0)                                                                                                | No       | `0.1`                          |
+| `custom-prompt`           | Optional custom rule/message to be appended as additional instruction to the LLM.                                                | No       |                                |
+| `langsmith-api-key`       | LangSmith API key for tracing LLM calls (optional)                                                                               | No       |                                |
+| `langsmith-project`       | LangSmith project name for tracing; defaults to "pydantic-to-typescript-action" if not provided                                   | No       | `pydantic-to-typescript-action`|
+| `verbose`                 | If `true`, prints the system message, user message, and LLM output to the logs (useful for debugging).                            | No       | `true`                         |
+
+## LangSmith Tracing
+
+If you provide a `langsmith-api-key`, the action automatically enables LangSmith tracing for your LLM calls. Tracing is activated by setting the following environment variables before executing the LLM:
+- `LANGSMITH_TRACING` is set to `"true"`.
+- `LANGSMITH_API_KEY` is set to your provided API key.
+- `LANGSMITH_PROJECT` is set to your provided project name or defaults to `"pydantic-to-typescript-action"`.
+- `LANGSMITH_RUN` is set to the base Python file’s name (used as the run name).
+
+This integration allows you to capture and evaluate each LLM invocation without additional configuration steps.
+
+## Verbose Logging
+
+When the `verbose` option is enabled (default is `true`), the action prints:
+- The system message sent to the LLM.
+- The user message with dynamic content and any custom prompt.
+- The output received from the LLM.
+
+These logs can be extremely helpful for debugging or understanding the LLM's behavior.
 
 ## Development
 

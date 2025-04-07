@@ -25,6 +25,10 @@ export async function run(): Promise<void> {
     const anthropicApiKey = core.getInput("anthropic-api-key");
     const openaiApiKey = core.getInput("openai-api-key");
 
+    // LangSmith inputs (optional)
+    const langsmithApiKey = core.getInput("langsmith-api-key");
+    const langsmithProject = core.getInput("langsmith-project");
+
     // Validate paths
     await validateFilePath(basePythonFile, "Base Python file");
     await validateFilePath(newPythonFile, "New Python file");
@@ -49,6 +53,14 @@ export async function run(): Promise<void> {
       newPython,
     );
 
+    // Determine run name based on the base Python file name
+    const runName = path.basename(basePythonFile);
+
+    // Prepare optional LangSmith configuration if provided
+    const langsmithConfig = langsmithApiKey
+      ? { langsmithApiKey, projectName: langsmithProject, runName }
+      : undefined;
+
     // Generate TypeScript using LLM
     core.info(
       `Using LLM (${modelProvider} - ${modelName}) to generate TypeScript...`,
@@ -66,6 +78,7 @@ export async function run(): Promise<void> {
         temperature,
       },
       customPrompt,
+      langsmithConfig, // Pass LangSmith config if tracing is enabled
     );
 
     // Write output file

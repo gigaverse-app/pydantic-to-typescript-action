@@ -32,6 +32,13 @@ inputs:
   custom-prompt:
     description: 'Optional custom prompt rule/message to enhance or change default system instructions'
     required: false
+  langsmith-api-key:
+    description: 'LangSmith API key for tracing (optional)'
+    required: false
+  langsmith-project:
+    description: 'LangSmith project name (optional; default: "pydantic-to-typescript-action")'
+    required: false
+    default: 'pydantic-to-typescript-action'
 
 runs:
   using: 'node16'

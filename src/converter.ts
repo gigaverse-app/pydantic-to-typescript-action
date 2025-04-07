@@ -17,6 +17,13 @@ export type LLMConfig = {
   temperature: number;
 };
 
+// Define a type for optional LangSmith configuration
+export type LangSmithConfig = {
+  langsmithApiKey: string;
+  projectName?: string;
+  runName: string;
+};
+
 /**
  * Create a diff between two files
  */
@@ -104,10 +111,13 @@ function extractTypescriptCode(response: string): string {
 /**
  * Generate TypeScript code using the LLM.
  *
- * This updated version uses:
- * 1. A system prompt for static context and instructions.
- * 2. A user (human) prompt with LangChain placeholders.
- * 3. The chain’s invoke function to provide the input data (via placeholder substitution).
+ * @param basePython - Original Python content
+ * @param newPython - New Python content
+ * @param diffText - Diff between the two versions
+ * @param currentTypescript - The current TypeScript adaptation
+ * @param llmConfig - LLM configuration
+ * @param customPrompt - Optional custom rule/message
+ * @param langsmithConfig - Optional LangSmith configuration for tracing
  */
 export async function generateTypescript(
   basePython: string,
@@ -116,7 +126,17 @@ export async function generateTypescript(
   currentTypescript: string,
   llmConfig: LLMConfig,
   customPrompt?: string,
+  langsmithConfig?: LangSmithConfig,
 ): Promise<string> {
+  // If LangSmith configuration is provided, set the environment variables.
+  // These environment variables activate tracing in LangChain.
+  if (langsmithConfig && langsmithConfig.langsmithApiKey) {
+    process.env.LANGSMITH_TRACING = "true";
+    process.env.LANGSMITH_API_KEY = langsmithConfig.langsmithApiKey;
+    process.env.LANGSMITH_PROJECT =
+      langsmithConfig.projectName || "pydantic-to-typescript-action";
+  }
+
   // Create the LLM client from the configuration
   const llm = createLLMClient(llmConfig);
 
