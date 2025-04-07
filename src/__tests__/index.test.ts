@@ -98,6 +98,7 @@ describe("index.ts", () => {
       },
       "",
       undefined,
+      true,
     );
 
     // Verify output was written

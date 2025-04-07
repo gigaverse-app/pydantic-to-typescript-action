@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import * as fs from "fs/promises";
 import path from "path";
-import { createDiff, generateTypescript } from "./converter";
+import { createDiff, generateTypescript, LangSmithConfig } from "./converter";
 
 export async function run(): Promise<void> {
   try {
@@ -17,24 +17,30 @@ export async function run(): Promise<void> {
       required: true,
     });
     const modelProvider = core.getInput("model-provider") || "anthropic";
-    const modelName = core.getInput("model-name") || "claude-3-7-sonnet-latest";
+    const modelName = core.getInput("model-name") || "claude-3-haiku-20240307";
     const temperature = parseFloat(core.getInput("temperature") || "0.1");
-    const customPrompt = core.getInput("custom-prompt") || "";
 
-    // Get API keys
+    // API keys
     const anthropicApiKey = core.getInput("anthropic-api-key");
     const openaiApiKey = core.getInput("openai-api-key");
+
+    // Custom prompt (optional)
+    const customPrompt = core.getInput("custom-prompt");
 
     // LangSmith inputs (optional)
     const langsmithApiKey = core.getInput("langsmith-api-key");
     const langsmithProject = core.getInput("langsmith-project");
 
-    // Validate paths
+    // Verbose mode (default is true; treat any value other than "false" as true)
+    const verboseInput = core.getInput("verbose");
+    const verbose = verboseInput.toLowerCase() !== "false";
+
+    // Validate file paths
     await validateFilePath(basePythonFile, "Base Python file");
     await validateFilePath(newPythonFile, "New Python file");
     await validateFilePath(currentTypescriptFile, "Current TypeScript file");
 
-    // Create output directory if it doesn't exist
+    // Create the output directory if it doesn't exist
     const outputDir = path.dirname(outputTypescriptFile);
     await fs.mkdir(outputDir, { recursive: true });
 
@@ -57,11 +63,16 @@ export async function run(): Promise<void> {
     const runName = path.basename(basePythonFile);
 
     // Prepare optional LangSmith configuration if provided
-    const langsmithConfig = langsmithApiKey
+    const langsmithConfig: LangSmithConfig | undefined = langsmithApiKey
       ? { langsmithApiKey, projectName: langsmithProject, runName }
       : undefined;
 
-    // Generate TypeScript using LLM
+    core.info(`Verbose mode is ${verbose ? "enabled" : "disabled"}.`);
+    core.info(
+      `LangSmith tracing: ${langsmithConfig ? "enabled" : "not enabled"}.`,
+    );
+
+    // Generate TypeScript using the LLM, passing in the verbose flag
     core.info(
       `Using LLM (${modelProvider} - ${modelName}) to generate TypeScript...`,
     );
@@ -77,8 +88,9 @@ export async function run(): Promise<void> {
         openaiApiKey,
         temperature,
       },
-      customPrompt,
-      langsmithConfig, // Pass LangSmith config if tracing is enabled
+      customPrompt, // Optional custom prompt
+      langsmithConfig, // Optional LangSmith tracing configuration
+      verbose, // Verbose flag
     );
 
     // Write output file
@@ -112,7 +124,6 @@ async function validateFilePath(
   try {
     await fs.access(filePath);
   } catch {
-    // No named error variable
     throw new Error(`${fileDescription} not found at path: ${filePath}`);
   }
 }

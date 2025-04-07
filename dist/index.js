@@ -45474,21 +45474,17 @@ const openai_1 = __nccwpck_require__(92079);
 const prompts_1 = __nccwpck_require__(45425);
 const output_parsers_1 = __nccwpck_require__(97766);
 /**
- * Create a diff between two files
+ * Create a diff between two files.
  */
 function createDiff(file1Path, file1Content, file2Path, file2Content) {
-    // Create the standard patch
     const standardPatch = diff.createPatch(file1Path, file1Content, file2Content, "Original", "Modified");
-    // Convert to Git-style diff format
-    const gitStyleDiff = `diff --git a/${file1Path} b/${file2Path}
+    return `diff --git a/${file1Path} b/${file2Path}
 --- a/${file1Path}
 +++ b/${file2Path}
 ${standardPatch.split("\n").slice(4).join("\n")}`;
-    return gitStyleDiff;
 }
 /**
  * Create an LLM client based on the provider.
- * Exported to allow mocking in tests.
  */
 function createLLMClient(config) {
     if (config.provider === "anthropic") {
@@ -45514,20 +45510,17 @@ function createLLMClient(config) {
     throw new Error(`Unsupported provider: ${config.provider}`);
 }
 /**
- * Extract TypeScript code from LLM response if wrapped in code blocks.
+ * Extract TypeScript code from an LLM response if wrapped in code blocks.
  */
 function extractTypescriptCode(response) {
-    // Check if the response is wrapped in code blocks
     const typescriptBlockMatch = response.match(/```typescript\s*([\s\S]*?)\s*```/);
     if (typescriptBlockMatch && typescriptBlockMatch[1]) {
         return typescriptBlockMatch[1].trim();
     }
-    // Also check for ts code blocks
     const tsBlockMatch = response.match(/```ts\s*([\s\S]*?)\s*```/);
     if (tsBlockMatch && tsBlockMatch[1]) {
         return tsBlockMatch[1].trim();
     }
-    // If no code blocks, assume the whole response is code (trimming potential extra text)
     return response
         .replace(/^(.*?)```/s, "")
         .replace(/```.*$/s, "")
@@ -45536,15 +45529,29 @@ function extractTypescriptCode(response) {
 /**
  * Generate TypeScript code using the LLM.
  *
- * This updated version uses:
- * 1. A system prompt for static context and instructions.
- * 2. A user (human) prompt with LangChain placeholders.
- * 3. The chain’s invoke function to provide the input data (via placeholder substitution).
+ * @param basePython - Original Python content.
+ * @param newPython - New Python content.
+ * @param diffText - Diff between the two versions.
+ * @param currentTypescript - The current TypeScript adaptation.
+ * @param llmConfig - LLM configuration.
+ * @param customPrompt - Optional custom rule/message.
+ * @param langsmithConfig - Optional LangSmith configuration for tracing.
+ * @param verbose - If true, print system and user messages, and LLM output.
  */
-async function generateTypescript(basePython, newPython, diffText, currentTypescript, llmConfig, customPrompt) {
-    // Create the LLM client from the configuration
-    const llm = createLLMClient(llmConfig);
-    // Define a static system prompt (background context and rules)
+async function generateTypescript(basePython, newPython, diffText, currentTypescript, llmConfig, customPrompt, langsmithConfig, verbose = true) {
+    // Set LangSmith tracing if configuration is provided.
+    if (langsmithConfig && langsmithConfig.langsmithApiKey) {
+        process.env.LANGSMITH_TRACING = "true";
+        process.env.LANGSMITH_API_KEY = langsmithConfig.langsmithApiKey;
+        process.env.LANGSMITH_PROJECT =
+            langsmithConfig.projectName || "pydantic-to-typescript-action";
+        process.env.LANGSMITH_RUN = langsmithConfig.runName;
+        console.info("LangSmith tracing enabled.");
+    }
+    else {
+        console.info("LangSmith tracing not enabled.");
+    }
+    // Define the system prompt with a reminder about the optional custom rule.
     const systemMessage = `
 You are a specialized AI tasked with updating TypeScript interface definitions based on changes in Python Pydantic models.
 Generate valid TypeScript code that reflects the modifications in the Python models.
@@ -45560,38 +45567,39 @@ I will provide:
 2. The new Python Pydantic models
 3. A diff showing what changed
 4. The current TypeScript adaptation
-5. An optional custom rule/message might be provided as an additional instruction.
+
+# REMINDER
+An optional custom rule/message might be provided as an additional instruction.
 
 # TASK
 Generate an updated version of the TypeScript that:
-- Incorporates all changes from the Python models (added/removed/modified fields or models).
-- Maintains all existing styling, naming conventions, and patterns.
-- Preserves TypeScript-specific optimizations and documentation.
+- Incorporates all changes from the Python models.
+- Maintains existing styling, naming conventions, and patterns.
+- Preserves any TypeScript-specific optimizations and documentation.
 
 # OUTPUT INSTRUCTIONS
 Return ONLY the complete, updated TypeScript code with no additional explanation.
 Ensure the code is valid and can be saved directly to a file.
   `.trim();
-    // Define a user prompt with LangChain placeholders.
-    // Note that the placeholders (e.g., {basePython}) are left as-is.
+    // Define the user prompt with a placeholder for the custom rule.
     const userMessage = `
 # INPUT
 1. The original Python Pydantic models:
 \`\`\`
-{basePython})
+{basePython}
 \`\`\`
 
-2. The new Python Pydantic models
+2. The new Python Pydantic models:
 \`\`\`
 {newPython}
 \`\`\`
 
-3. A diff showing what changed
+3. A diff showing what changed:
 \`\`\`
 {diff}
 \`\`\`
 
-4. The current TypeScript adaptation
+4. The current TypeScript adaptation:
 \`\`\`
 {currentTypescript}
 \`\`\`
@@ -45601,33 +45609,41 @@ Ensure the code is valid and can be saved directly to a file.
 {customPrompt}
 \`\`\`
 
-# Reminder: TASK
+# REMINDER: TASK
 Generate an updated version of the TypeScript that:
-- Incorporates all changes from the Python models (added/removed/modified fields or models).
-- Maintains all existing styling, naming conventions, and patterns.
-- Preserves TypeScript-specific optimizations and documentation.
+- Incorporates all changes from the Python models.
+- Maintains existing styling, naming conventions, and patterns.
+- Preserves any TypeScript-specific optimizations and documentation.
 
-# Reminder: OUTPUT INSTRUCTIONS
+# REMINDER: OUTPUT INSTRUCTIONS
 Return ONLY the complete, updated TypeScript code with no additional explanation.
 Ensure the code is valid and can be saved directly to a file.
   `.trim();
-    // Build the chain using separate system and human (user) message templates.
+    if (verbose) {
+        console.log("System Message:");
+        console.log(systemMessage);
+        console.log("User Message:");
+        console.log(userMessage);
+    }
+    // Build the LangChain prompt chain.
     const chain = prompts_1.ChatPromptTemplate.fromMessages([
         prompts_1.SystemMessagePromptTemplate.fromTemplate(systemMessage),
         prompts_1.HumanMessagePromptTemplate.fromTemplate(userMessage),
     ])
-        .pipe(llm)
+        .pipe(createLLMClient(llmConfig))
         .pipe(new output_parsers_1.StringOutputParser());
-    // Provide the dynamic input values via the chain.invoke call.
-    // These inputs will be substituted into the placeholders in the user prompt.
+    console.info("Invoking LLM chain...");
     const response = await chain.invoke({
         basePython,
         newPython,
         diff: diffText,
         currentTypescript,
-        customPrompt,
+        customPrompt, // Substituted even if empty.
     });
-    // Extract TypeScript code from the LLM response and return it.
+    if (verbose) {
+        console.log("LLM Output:");
+        console.log(response);
+    }
     return extractTypescriptCode(response);
 }
 
@@ -45695,17 +45711,24 @@ async function run() {
             required: true,
         });
         const modelProvider = core.getInput("model-provider") || "anthropic";
-        const modelName = core.getInput("model-name") || "claude-3-7-sonnet-latest";
+        const modelName = core.getInput("model-name") || "claude-3-haiku-20240307";
         const temperature = parseFloat(core.getInput("temperature") || "0.1");
-        const customPrompt = core.getInput("custom-prompt") || "";
-        // Get API keys
+        // API keys
         const anthropicApiKey = core.getInput("anthropic-api-key");
         const openaiApiKey = core.getInput("openai-api-key");
-        // Validate paths
+        // Custom prompt (optional)
+        const customPrompt = core.getInput("custom-prompt");
+        // LangSmith inputs (optional)
+        const langsmithApiKey = core.getInput("langsmith-api-key");
+        const langsmithProject = core.getInput("langsmith-project");
+        // Verbose mode (default is true; treat any value other than "false" as true)
+        const verboseInput = core.getInput("verbose");
+        const verbose = verboseInput.toLowerCase() !== "false";
+        // Validate file paths
         await validateFilePath(basePythonFile, "Base Python file");
         await validateFilePath(newPythonFile, "New Python file");
         await validateFilePath(currentTypescriptFile, "Current TypeScript file");
-        // Create output directory if it doesn't exist
+        // Create the output directory if it doesn't exist
         const outputDir = path_1.default.dirname(outputTypescriptFile);
         await fs.mkdir(outputDir, { recursive: true });
         // Read files
@@ -45716,7 +45739,15 @@ async function run() {
         // Generate diff
         core.info("Generating diff between Python files...");
         const diff = (0, converter_1.createDiff)(basePythonFile, basePython, newPythonFile, newPython);
-        // Generate TypeScript using LLM
+        // Determine run name based on the base Python file name
+        const runName = path_1.default.basename(basePythonFile);
+        // Prepare optional LangSmith configuration if provided
+        const langsmithConfig = langsmithApiKey
+            ? { langsmithApiKey, projectName: langsmithProject, runName }
+            : undefined;
+        core.info(`Verbose mode is ${verbose ? "enabled" : "disabled"}.`);
+        core.info(`LangSmith tracing: ${langsmithConfig ? "enabled" : "not enabled"}.`);
+        // Generate TypeScript using the LLM, passing in the verbose flag
         core.info(`Using LLM (${modelProvider} - ${modelName}) to generate TypeScript...`);
         const updatedTypescript = await (0, converter_1.generateTypescript)(basePython, newPython, diff, currentTypescript, {
             provider: modelProvider,
@@ -45724,7 +45755,9 @@ async function run() {
             anthropicApiKey,
             openaiApiKey,
             temperature,
-        }, customPrompt);
+        }, customPrompt, // Optional custom prompt
+        langsmithConfig, // Optional LangSmith tracing configuration
+        verbose);
         // Write output file
         core.info(`Writing output to ${outputTypescriptFile}...`);
         await fs.writeFile(outputTypescriptFile, updatedTypescript);
@@ -45752,7 +45785,6 @@ async function validateFilePath(filePath, fileDescription) {
         await fs.access(filePath);
     }
     catch {
-        // No named error variable
         throw new Error(`${fileDescription} not found at path: ${filePath}`);
     }
 }
