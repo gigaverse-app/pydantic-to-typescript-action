@@ -1,0 +1,148 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Check if dist is in .gitignore
+        id: check_gitignore
+        run: |
+          if grep -q "^dist$" .gitignore; then
+            echo "dist_ignored=true" >> $GITHUB_OUTPUT
+          else
+            echo "dist_ignored=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update .gitignore for dist if needed
+        if: steps.check_gitignore.outputs.dist_ignored == 'true'
+        run: |
+          sed -i '/^dist$/d' .gitignore
+          echo "# Keep dist folder for GitHub Action" >> .gitignore
+          echo "# dist/*" >> .gitignore
+          echo "# !dist/.gitkeep" >> .gitignore
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  auto-tag:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Get package version
+        id: get_version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "package_version=v$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Create tag if needed
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ steps.get_version.outputs.package_version }}
+          tag_prefix: ''
+          create_annotated_tag: true
+
+  release:
+    needs: [build, auto-tag]
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || 
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '') ||
+      (needs.auto-tag.outputs.new_tag != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version != '' && format('refs/tags/{0}', github.event.inputs.version) || github.ref }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Commit and push dist folder
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -f dist/
+          git commit -m "Build dist for release [skip ci]" || echo "No changes to commit"
+          git push origin HEAD:${GITHUB_REF}
+
+      - name: Determine tag name
+        id: tag_name
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.version }}" != "" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ needs.auto-tag.outputs.new_tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_name.outputs.tag }}
+          name: Release ${{ steps.tag_name.outputs.tag }}
+          body: |
+            ## Python Pydantic to TypeScript LLM Converter ${{ steps.tag_name.outputs.tag }}
+            
+            This release includes:
+            - Compiled action in the `dist` directory
+            - Support for both Anthropic Claude and OpenAI models
+            - Improved error handling and logging
+            
+            To use this action, see the examples in the README.
+          generate_release_notes: true
+          draft: false

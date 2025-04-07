@@ -1,0 +1,72 @@
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Type of version bump'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      custom_version:
+        description: 'Custom version (leave empty to use automatic versioning)'
+        required: false
+        type: string
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Bump version using npm
+        if: github.event.inputs.custom_version == ''
+        id: npm-version
+        run: |
+          npm version ${{ github.event.inputs.version_type }} -m "Bump version to %s [skip ci]"
+          echo "new_version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Set custom version
+        if: github.event.inputs.custom_version != ''
+        id: custom-version
+        run: |
+          npm version ${{ github.event.inputs.custom_version }} -m "Set version to %s [skip ci]"
+          echo "new_version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Push changes
+        run: |
+          git push --follow-tags
+
+      - name: Create Pull Request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: 'Bump version to v${{ steps.npm-version.outputs.new_version || steps.custom-version.outputs.new_version }}'
+          body: |
+            Automated version bump to v${{ steps.npm-version.outputs.new_version || steps.custom-version.outputs.new_version }}
+            
+            This PR was created by the version bump workflow.
+          branch: 'version-bump/v${{ steps.npm-version.outputs.new_version || steps.custom-version.outputs.new_version }}'
+          base: 'main'
+          delete-branch: true
+          labels: 'version-bump,automated-pr'
