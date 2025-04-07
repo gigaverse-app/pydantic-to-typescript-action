@@ -96,7 +96,8 @@ async function validateFilePath(
 ): Promise<void> {
   try {
     await fs.access(filePath);
-  } catch (/* eslint-disable-next-line @typescript-eslint/no-unused-vars */ _) {
+  } catch {
+    // No named error variable
     throw new Error(`${fileDescription} not found at path: ${filePath}`);
   }
 }

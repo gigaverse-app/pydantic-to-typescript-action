@@ -25,6 +25,7 @@ interface BaseChatModelCallOptions {
 }
 
 // Mock LLM implementation for testing
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class MockLLM extends BaseChatModel<BaseChatModelCallOptions> {
   _llmType(): string {
     return "mock";
