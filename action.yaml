@@ -1,0 +1,43 @@
+name: 'Python Pydantic to TypeScript LLM Converter'
+description: 'Converts Python Pydantic models to TypeScript using an LLM, maintaining styling and conventions'
+author: 'Your Name'
+
+inputs:
+  base-python-file:
+    description: 'Path to the base Python Pydantic file'
+    required: true
+  new-python-file:
+    description: 'Path to the new Python Pydantic file'
+    required: true
+  current-typescript-file:
+    description: 'Path to the current TypeScript file'
+    required: true
+  output-typescript-file:
+    description: 'Path to the output TypeScript file'
+    required: true
+  model-provider:
+    description: 'LLM provider to use (anthropic or openai)'
+    required: false
+    default: 'anthropic'
+  model-name:
+    description: 'Specific model to use'
+    required: false
+    default: 'claude-3-haiku-20240307'
+  anthropic-api-key:
+    description: 'Anthropic API key'
+    required: false
+  openai-api-key:
+    description: 'OpenAI API key'
+    required: false
+  temperature:
+    description: 'Temperature for the LLM (0.0-1.0)'
+    required: false
+    default: '0.1'
+
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
+
+branding:
+  icon: 'code'
+  color: 'blue'
