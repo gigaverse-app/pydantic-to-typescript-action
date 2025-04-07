@@ -20,7 +20,7 @@ export function createDiff(
   file1Path: string,
   file1Content: string,
   file2Path: string,
-  file2Content: string
+  file2Content: string,
 ): string {
   // First create the standard patch
   const standardPatch = diff.createPatch(
@@ -30,7 +30,7 @@ export function createDiff(
     "Original",
     "Modified",
   );
-  
+
   // Convert to Git-style diff format
   const gitStyleDiff = `diff --git a/${file1Path} b/${file2Path}
 --- a/${file1Path}
@@ -51,7 +51,7 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
         "Anthropic API key is required when using Anthropic provider",
       );
     }
-    
+
     return new ChatAnthropic({
       apiKey: config.anthropicApiKey,
       modelName: config.model,
@@ -61,14 +61,14 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
     if (!config.openaiApiKey) {
       throw new Error("OpenAI API key is required when using OpenAI provider");
     }
-    
+
     return new ChatOpenAI({
       apiKey: config.openaiApiKey,
       modelName: config.model,
       temperature: config.temperature,
     });
   }
-  
+
   throw new Error(`Unsupported provider: ${config.provider}`);
 }
 
@@ -79,7 +79,7 @@ function createPrompt(
   basePython: string,
   newPython: string,
   diff: string,
-  currentTypescript: string
+  currentTypescript: string,
 ): string {
   return `
 You are a specialized AI tasked with updating TypeScript interface definitions based on changes in Python Pydantic models.
@@ -143,13 +143,13 @@ function extractTypescriptCode(response: string): string {
   if (typescriptBlockMatch && typescriptBlockMatch[1]) {
     return typescriptBlockMatch[1].trim();
   }
-  
+
   // Also check for ts code blocks
   const tsBlockMatch = response.match(/```ts\s*([\s\S]*?)\s*```/);
   if (tsBlockMatch && tsBlockMatch[1]) {
     return tsBlockMatch[1].trim();
   }
-  
+
   // If no code blocks, assume the whole response is code (trimming potential explanatory text)
   return response
     .replace(/^(.*?)```/s, "")
@@ -169,18 +169,18 @@ export async function generateTypescript(
 ): Promise<string> {
   // Create LLM client
   const llm = createLLMClient(llmConfig);
-  
+
   // Create prompt
   const prompt = createPrompt(basePython, newPython, diff, currentTypescript);
-  
+
   // Create chain
   const chain = ChatPromptTemplate.fromTemplate(prompt)
     .pipe(llm)
     .pipe(new StringOutputParser());
-  
+
   // Run chain
   const response = await chain.invoke({});
-  
+
   // Extract TypeScript code
   return extractTypescriptCode(response);
 }

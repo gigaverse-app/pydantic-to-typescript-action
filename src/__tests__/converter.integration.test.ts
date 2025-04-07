@@ -1,25 +1,23 @@
 /**
  * Integration Test for the TypeScript Generator
- * 
+ *
  * This test verifies that the generateTypescript function:
  * 1. Can correctly process Python Pydantic models and their TypeScript conversions
  * 2. Properly handles the input parameters (base Python, new Python, diff, and current TypeScript)
  * 3. Returns an appropriate TypeScript interface with the expected modifications
- * 
+ *
  * Testing approach:
  * - We mock the actual LLM call to avoid requiring API keys and external services
  * - We verify both the function call arguments and the return value format
- * - We ensure that changes from the Python file (adding an optional 'age' field) 
- *   are reflected in the TypeScript output
+ * - We ensure that changes from the Python file (adding an optional 'age' field)
+ * are reflected in the TypeScript output
  */
 
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { BaseMessage, AIMessage } from "@langchain/core/messages";
 import { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
 import { ChatResult, ChatGeneration } from "@langchain/core/outputs";
-import * as converter from '../converter';
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
+import * as converter from "../converter";
 
 // Define a base model call options type
 interface BaseChatModelCallOptions {
@@ -41,13 +39,13 @@ class MockLLM extends BaseChatModel<BaseChatModelCallOptions> {
   }
 
   async _generate(
-    messages: BaseMessage[],
-    options: any,
-    runManager?: CallbackManagerForLLMRun
+    _messages: BaseMessage[],
+    _options: any,
+    _runManager?: CallbackManagerForLLMRun,
   ): Promise<ChatResult> {
     // Create proper AIMessage
     const message = new AIMessage(this.mockResponse);
-    
+
     // Create a valid ChatGeneration object
     const generation: ChatGeneration = {
       text: this.mockResponse,
@@ -60,8 +58,8 @@ class MockLLM extends BaseChatModel<BaseChatModelCallOptions> {
   }
 
   async invoke(
-    input: BaseMessage[] | string,
-    options?: BaseChatModelCallOptions
+    _input: BaseMessage[] | string,
+    _options?: BaseChatModelCallOptions,
   ): Promise<AIMessage> {
     // Return a proper AIMessage
     return new AIMessage(this.mockResponse);
@@ -77,9 +75,9 @@ class MockLLM extends BaseChatModel<BaseChatModelCallOptions> {
   }
 }
 
-describe('LLM Integration Tests', () => {
-  describe('generateTypescript', () => {
-    it('should generate TypeScript code from Python models', async () => {
+describe("LLM Integration Tests", () => {
+  describe("generateTypescript", () => {
+    it("should generate TypeScript code from Python models", async () => {
       // Sample Python models
       const basePython = `
 class User(BaseModel):
@@ -87,7 +85,7 @@ class User(BaseModel):
     name: str
     email: str
 `;
-      
+
       const newPython = `
 class User(BaseModel):
     id: int
@@ -109,7 +107,7 @@ diff --git a/models.py b/models.py
      email: str
 +    age: Optional[int] = None
 `;
-      
+
       // Sample TypeScript
       const currentTypescript = `
 export interface User {
@@ -131,14 +129,22 @@ export interface User {
 
       // Create a spy on the generateTypescript function
       const originalGenerateTypescript = converter.generateTypescript;
-      
+
       // Replace with our implementation that bypasses LLM
-      converter.generateTypescript = jest.fn().mockImplementation(
-        async (basePython, newPython, diff, currentTypescript, llmConfig) => {
-          return expectedResponse;
-        }
-      );
-      
+      converter.generateTypescript = jest
+        .fn()
+        .mockImplementation(
+          async (
+            _basePython,
+            _newPython,
+            _diff,
+            _currentTypescript,
+            _llmConfig,
+          ) => {
+            return expectedResponse;
+          },
+        );
+
       try {
         // Call the function
         const result = await converter.generateTypescript(
@@ -147,16 +153,16 @@ export interface User {
           diff,
           currentTypescript,
           {
-            provider: 'anthropic',
-            model: 'mock-model',
+            provider: "anthropic",
+            model: "mock-model",
             temperature: 0.1,
-          }
+          },
         );
-        
+
         // Verify the result
-        expect(result).toContain('interface User');
-        expect(result).toContain('age?: number');
-        
+        expect(result).toContain("interface User");
+        expect(result).toContain("age?: number");
+
         // Verify the function was called with expected args
         expect(converter.generateTypescript).toHaveBeenCalledWith(
           basePython,
@@ -164,10 +170,10 @@ export interface User {
           diff,
           currentTypescript,
           expect.objectContaining({
-            provider: 'anthropic',
-            model: 'mock-model',
-            temperature: 0.1
-          })
+            provider: "anthropic",
+            model: "mock-model",
+            temperature: 0.1,
+          }),
         );
       } finally {
         // Restore the original function

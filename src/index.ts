@@ -19,7 +19,7 @@ async function run(): Promise<void> {
     const modelProvider = core.getInput("model-provider") || "anthropic";
     const modelName = core.getInput("model-name") || "claude-3-haiku-20240307";
     const temperature = parseFloat(core.getInput("temperature") || "0.1");
-    
+
     // Get API keys
     const anthropicApiKey = core.getInput("anthropic-api-key");
     const openaiApiKey = core.getInput("openai-api-key");
@@ -28,7 +28,7 @@ async function run(): Promise<void> {
     await validateFilePath(basePythonFile, "Base Python file");
     await validateFilePath(newPythonFile, "New Python file");
     await validateFilePath(currentTypescriptFile, "Current TypeScript file");
-    
+
     // Create output directory if it doesn't exist
     const outputDir = path.dirname(outputTypescriptFile);
     await fs.mkdir(outputDir, { recursive: true });
@@ -63,7 +63,7 @@ async function run(): Promise<void> {
         anthropicApiKey,
         openaiApiKey,
         temperature,
-      }
+      },
     );
 
     // Write output file
@@ -96,7 +96,7 @@ async function validateFilePath(
 ): Promise<void> {
   try {
     await fs.access(filePath);
-  } catch (_error) {
+  } catch (/* eslint-disable-next-line @typescript-eslint/no-unused-vars */ _) {
     throw new Error(`${fileDescription} not found at path: ${filePath}`);
   }
 }
