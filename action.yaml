@@ -22,7 +22,7 @@ inputs:
   model-name:
     description: 'Specific model to use'
     required: false
-    default: 'claude-sonnet-latest'
+    default: 'claude-3-7-sonnet-latest'
   anthropic-api-key:
     description: 'Anthropic API key'
     required: false
