@@ -1,6 +1,5 @@
 // src/__tests__/converter.integration.extended.test.ts
 import { generateTypescript } from "../converter";
-import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage } from "@langchain/core/messages";
 
 // Mock the ChatAnthropic and ChatOpenAI classes
@@ -8,7 +7,9 @@ jest.mock("@langchain/anthropic", () => {
   return {
     ChatAnthropic: jest.fn().mockImplementation(() => ({
       pipe: jest.fn().mockReturnThis(),
-      invoke: jest.fn().mockResolvedValue(new AIMessage("Generated TypeScript")),
+      invoke: jest
+        .fn()
+        .mockResolvedValue(new AIMessage("Generated TypeScript")),
     })),
   };
 });
@@ -17,7 +18,9 @@ jest.mock("@langchain/openai", () => {
   return {
     ChatOpenAI: jest.fn().mockImplementation(() => ({
       pipe: jest.fn().mockReturnThis(),
-      invoke: jest.fn().mockResolvedValue(new AIMessage("Generated TypeScript")),
+      invoke: jest
+        .fn()
+        .mockResolvedValue(new AIMessage("Generated TypeScript")),
     })),
   };
 });
@@ -36,7 +39,7 @@ export interface User {
   name: string;
   email: string;
 }
-\`\`\``
+\`\`\``,
             ),
           }),
         }),
@@ -97,7 +100,7 @@ export interface User {
         model: "test-model",
         anthropicApiKey: "test-key",
         temperature: 0.5,
-      }
+      },
     );
 
     expect(result).toContain("interface User");
@@ -143,7 +146,7 @@ export interface User {
         model: "test-model",
         openaiApiKey: "test-key",
         temperature: 0.5,
-      }
+      },
     );
 
     expect(result).toContain("interface User");
