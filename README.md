@@ -1,3 +1,4 @@
+
 # Python Pydantic to TypeScript LLM Converter
 
 A GitHub Action that uses an LLM (Claude or GPT) to intelligently convert Python Pydantic models to TypeScript interfaces, maintaining styling and conventions.
@@ -9,6 +10,8 @@ A GitHub Action that uses an LLM (Claude or GPT) to intelligently convert Python
 - Preserves comments and documentation
 - Supports both Anthropic (Claude) and OpenAI (GPT) models
 - Completely customizable with fine-grained control over the LLM parameters
+- Accepts an _optional_ custom rule/message for extra generation instructions  
+  _(Example: "Completely regenerate the .ts typescript file from the ground up from the new python file")_
 
 ## Usage
 
@@ -48,6 +51,8 @@ jobs:
           model-provider: 'anthropic'
           model-name: 'claude-3-haiku-20240307'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional custom rule/message:
+          # custom-prompt: "Completely regenerate the .ts typescript file from the ground up from the new python file"
 ```
 
 ### Workflow for Multiple Repositories
@@ -98,6 +103,8 @@ jobs:
           output-typescript-file: 'frontend-repo/src/types/schema.ts'
           model-provider: 'anthropic'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional custom rule/message can also be provided here:
+          # custom-prompt: "Add full documentation in pirate speak arrhhh"
 
       # Create a PR in the frontend repo
       - name: Create Pull Request
@@ -116,17 +123,18 @@ jobs:
 
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `base-python-file` | Path to the base Python Pydantic file | Yes | |
-| `new-python-file` | Path to the new Python Pydantic file | Yes | |
-| `current-typescript-file` | Path to the current TypeScript file | Yes | |
-| `output-typescript-file` | Path to the output TypeScript file | Yes | |
-| `model-provider` | LLM provider to use (anthropic or openai) | No | `anthropic` |
-| `model-name` | Specific model to use | No | `claude-3-haiku-20240307` |
-| `anthropic-api-key` | Anthropic API key | No | |
-| `openai-api-key` | OpenAI API key | No | |
-| `temperature` | Temperature for the LLM (0.0-1.0) | No | `0.1` |
+| Input                     | Description                                                                                                 | Required | Default                        |
+|---------------------------|-------------------------------------------------------------------------------------------------------------|----------|--------------------------------|
+| `base-python-file`        | Path to the base Python Pydantic file                                                                       | Yes      |                                |
+| `new-python-file`         | Path to the new Python Pydantic file                                                                        | Yes      |                                |
+| `current-typescript-file` | Path to the current TypeScript file                                                                         | Yes      |                                |
+| `output-typescript-file`  | Path to the output TypeScript file                                                                          | Yes      |                                |
+| `model-provider`          | LLM provider to use (anthropic or openai)                                                                   | No       | `anthropic`                    |
+| `model-name`              | Specific model to use                                                                                       | No       | `claude-3-7-sonnet-latest`     |
+| `anthropic-api-key`       | Anthropic API key                                                                                           | No       |                                |
+| `openai-api-key`          | OpenAI API key                                                                                              | No       |                                |
+| `temperature`             | Temperature for the LLM (0.0-1.0)                                                                           | No       | `0.1`                          |
+| `custom-prompt`           | Optional custom rule/message to be appended as additional instruction to the LLM.                           | No       |                                |
 
 ## Development
 
