@@ -45477,7 +45477,7 @@ const output_parsers_1 = __nccwpck_require__(97766);
  * Create a diff between two files
  */
 function createDiff(file1Path, file1Content, file2Path, file2Content) {
-    // First create the standard patch
+    // Create the standard patch
     const standardPatch = diff.createPatch(file1Path, file1Content, file2Content, "Original", "Modified");
     // Convert to Git-style diff format
     const gitStyleDiff = `diff --git a/${file1Path} b/${file2Path}
@@ -45487,8 +45487,8 @@ ${standardPatch.split("\n").slice(4).join("\n")}`;
     return gitStyleDiff;
 }
 /**
- * Create an LLM client based on the provider
- * Exported to allow mocking in tests
+ * Create an LLM client based on the provider.
+ * Exported to allow mocking in tests.
  */
 function createLLMClient(config) {
     if (config.provider === "anthropic") {
@@ -45514,61 +45514,7 @@ function createLLMClient(config) {
     throw new Error(`Unsupported provider: ${config.provider}`);
 }
 /**
- * Create the prompt for the LLM
- */
-function createPrompt(basePython, newPython, diff, currentTypescript) {
-    return `
-You are a specialized AI tasked with updating TypeScript interface definitions based on changes in Python Pydantic models.
-
-# CONTEXT
-I have Python Pydantic models that define an API schema, and a corresponding TypeScript adaptation.
-The Python models have been modified, and I need you to update the TypeScript accordingly.
-
-# INPUT
-I will provide:
-1. The original Python Pydantic models
-2. The new Python Pydantic models with changes
-3. A diff showing what changed in the Python models
-4. The current TypeScript adaptation
-
-# TASK
-Generate an updated version of the TypeScript that:
-1. Incorporates all changes from the Python models (added/removed/modified fields and models)
-2. Maintains the exact same styling, naming conventions, and patterns as the current TypeScript
-3. Preserves any TypeScript-specific optimizations or adaptations
-4. Includes all comments and documentation from the current TypeScript where still relevant
-
-# ORIGINAL PYTHON PYDANTIC MODELS
-\`\`\`python
-${basePython}
-\`\`\`
-
-# NEW PYTHON PYDANTIC MODELS
-\`\`\`python
-${newPython}
-\`\`\`
-
-# PYTHON DIFF
-\`\`\`diff
-${diff}
-\`\`\`
-
-# CURRENT TYPESCRIPT
-\`\`\`typescript
-${currentTypescript}
-\`\`\`
-
-# OUTPUT INSTRUCTIONS
-1. Return ONLY the complete, updated TypeScript code with no additional explanation
-2. Do not explain the changes - just provide the final code
-3. Ensure ALL existing TypeScript conventions are preserved
-4. The response should be valid TypeScript that can be directly saved to a file
-
-# UPDATED TYPESCRIPT OUTPUT:
-`;
-}
-/**
- * Extract TypeScript code from LLM response if wrapped in code blocks
+ * Extract TypeScript code from LLM response if wrapped in code blocks.
  */
 function extractTypescriptCode(response) {
     // Check if the response is wrapped in code blocks
@@ -45581,27 +45527,100 @@ function extractTypescriptCode(response) {
     if (tsBlockMatch && tsBlockMatch[1]) {
         return tsBlockMatch[1].trim();
     }
-    // If no code blocks, assume the whole response is code (trimming potential explanatory text)
+    // If no code blocks, assume the whole response is code (trimming potential extra text)
     return response
         .replace(/^(.*?)```/s, "")
         .replace(/```.*$/s, "")
         .trim();
 }
 /**
- * Generate TypeScript code using the LLM
+ * Generate TypeScript code using the LLM.
+ *
+ * This updated version uses:
+ * 1. A system prompt for static context and instructions.
+ * 2. A user (human) prompt with LangChain placeholders.
+ * 3. The chain’s invoke function to provide the input data (via placeholder substitution).
  */
-async function generateTypescript(basePython, newPython, diff, currentTypescript, llmConfig) {
-    // Create LLM client
+async function generateTypescript(basePython, newPython, diffText, currentTypescript, llmConfig) {
+    // Create the LLM client from the configuration
     const llm = createLLMClient(llmConfig);
-    // Create prompt
-    const prompt = createPrompt(basePython, newPython, diff, currentTypescript);
-    // Create chain
-    const chain = prompts_1.ChatPromptTemplate.fromTemplate(prompt)
+    // Define a static system prompt (background context and rules)
+    const systemMessage = `
+You are a specialized AI tasked with updating TypeScript interface definitions based on changes in Python Pydantic models.
+Generate valid TypeScript code that reflects the modifications in the Python models.
+Do not include any extra commentary or explanation.
+
+# CONTEXT
+I have Python Pydantic models that define an API schema, and a corresponding TypeScript adaptation.
+The Python models have been modified, and I need you to update the TypeScript accordingly.
+
+# INPUT
+I will provide:
+1. The original Python Pydantic models
+2. The new Python Pydantic models
+3. A diff showing what changed
+4. The current TypeScript adaptation
+
+# TASK
+Generate an updated version of the TypeScript that:
+- Incorporates all changes from the Python models (added/removed/modified fields or models).
+- Maintains all existing styling, naming conventions, and patterns.
+- Preserves TypeScript-specific optimizations and documentation.
+
+# OUTPUT INSTRUCTIONS
+Return ONLY the complete, updated TypeScript code with no additional explanation.
+Ensure the code is valid and can be saved directly to a file.
+  `.trim();
+    // Define a user prompt with LangChain placeholders.
+    // Note that the placeholders (e.g., {basePython}) are left as-is.
+    const userMessage = `
+# INPUT
+1. The original Python Pydantic models:
+\`\`\`
+{basePython})
+\`\`\`
+
+2. The new Python Pydantic models
+\`\`\`
+{newPython}
+\`\`\`
+
+3. A diff showing what changed
+\`\`\`
+{diff}
+\`\`\`
+
+4. The current TypeScript adaptation
+\`\`\`
+{currentTypescript}
+\`\`\`
+
+# Reminder: TASK
+Generate an updated version of the TypeScript that:
+- Incorporates all changes from the Python models (added/removed/modified fields or models).
+- Maintains all existing styling, naming conventions, and patterns.
+- Preserves TypeScript-specific optimizations and documentation.
+
+# Reminder: OUTPUT INSTRUCTIONS
+Return ONLY the complete, updated TypeScript code with no additional explanation.
+Ensure the code is valid and can be saved directly to a file.
+  `.trim();
+    // Build the chain using separate system and human (user) message templates.
+    const chain = prompts_1.ChatPromptTemplate.fromMessages([
+        prompts_1.SystemMessagePromptTemplate.fromTemplate(systemMessage),
+        prompts_1.HumanMessagePromptTemplate.fromTemplate(userMessage),
+    ])
         .pipe(llm)
         .pipe(new output_parsers_1.StringOutputParser());
-    // Run chain
-    const response = await chain.invoke({});
-    // Extract TypeScript code
+    // Provide the dynamic input values via the chain.invoke call.
+    // These inputs will be substituted into the placeholders in the user prompt.
+    const response = await chain.invoke({
+        basePython,
+        newPython,
+        diff: diffText,
+        currentTypescript,
+    });
+    // Extract TypeScript code from the LLM response and return it.
     return extractTypescriptCode(response);
 }
 
