@@ -17,8 +17,9 @@ export async function run(): Promise<void> {
       required: true,
     });
     const modelProvider = core.getInput("model-provider") || "anthropic";
-    const modelName = core.getInput("model-name") || "claude-3-haiku-20240307";
+    const modelName = core.getInput("model-name") || "claude-3-7-sonnet-latest";
     const temperature = parseFloat(core.getInput("temperature") || "0.1");
+    const customPrompt = core.getInput("custom-prompt") || "";
 
     // Get API keys
     const anthropicApiKey = core.getInput("anthropic-api-key");
@@ -64,6 +65,7 @@ export async function run(): Promise<void> {
         openaiApiKey,
         temperature,
       },
+      customPrompt,
     );
 
     // Write output file

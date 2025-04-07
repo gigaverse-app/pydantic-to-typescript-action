@@ -115,6 +115,7 @@ export async function generateTypescript(
   diffText: string,
   currentTypescript: string,
   llmConfig: LLMConfig,
+  customPrompt?: string,
 ): Promise<string> {
   // Create the LLM client from the configuration
   const llm = createLLMClient(llmConfig);
@@ -135,6 +136,7 @@ I will provide:
 2. The new Python Pydantic models
 3. A diff showing what changed
 4. The current TypeScript adaptation
+5. An optional custom rule/message might be provided as an additional instruction.
 
 # TASK
 Generate an updated version of the TypeScript that:
@@ -171,6 +173,11 @@ Ensure the code is valid and can be saved directly to a file.
 {currentTypescript}
 \`\`\`
 
+5. Custom rule/message (if provided):
+\`\`\`
+{customPrompt}
+\`\`\`
+
 # Reminder: TASK
 Generate an updated version of the TypeScript that:
 - Incorporates all changes from the Python models (added/removed/modified fields or models).
@@ -197,6 +204,7 @@ Ensure the code is valid and can be saved directly to a file.
     newPython,
     diff: diffText,
     currentTypescript,
+    customPrompt,
   });
 
   // Extract TypeScript code from the LLM response and return it.

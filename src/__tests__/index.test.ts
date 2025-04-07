@@ -96,6 +96,7 @@ describe("index.ts", () => {
         openaiApiKey: "",
         temperature: 0.1,
       },
+      "",
     );
 
     // Verify output was written

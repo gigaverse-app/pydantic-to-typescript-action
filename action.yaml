@@ -1,7 +1,3 @@
-name: 'Python Pydantic to TypeScript LLM Converter'
-description: 'Converts Python Pydantic models to TypeScript using an LLM, maintaining styling and conventions'
-author: 'Your Name'
-
 inputs:
   base-python-file:
     description: 'Path to the base Python Pydantic file'
@@ -33,11 +29,14 @@ inputs:
     description: 'Temperature for the LLM (0.0-1.0)'
     required: false
     default: '0.1'
+  custom-prompt:
+    description: 'Optional custom prompt rule/message to enhance or change default system instructions'
+    required: false
 
 runs:
   using: 'node16'
   main: 'dist/index.js'
-
+  
 branding:
   icon: 'code'
   color: 'blue'
