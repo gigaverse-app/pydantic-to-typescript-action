@@ -24,7 +24,6 @@ const logger = winston.createLogger({
 
 export default logger;
 
-
 // Define types for LangSmith configuration and LLM configuration.
 export type LangSmithConfig = {
   langsmithApiKey: string;
@@ -126,20 +125,20 @@ function readPromptFile(filename: string): string {
   // Possible locations to check for the prompt file
   const possiblePaths = [
     // Within the distributed/compiled action
-    path.join(__dirname, 'prompts', filename),
+    path.join(__dirname, "prompts", filename),
     // During development or tests
-    path.join(__dirname, '../prompts', filename),
+    path.join(__dirname, "../prompts", filename),
     // At the repository root
-    path.join(process.cwd(), 'prompts', filename)
+    path.join(process.cwd(), "prompts", filename),
   ];
 
   // Try each path until we find the file
   for (const filePath of possiblePaths) {
     try {
       if (fs.existsSync(filePath)) {
-        return fs.readFileSync(filePath, 'utf8').trim();
+        return fs.readFileSync(filePath, "utf8").trim();
       }
-    } catch (err) {
+    } catch (_err) {
       // Continue to the next path
     }
   }
@@ -147,8 +146,8 @@ function readPromptFile(filename: string): string {
   // If we couldn't find the file anywhere, throw an error with helpful information
   throw new Error(
     `Could not find prompt file: ${filename}. ` +
-    `Looked in: ${possiblePaths.join(', ')}. ` +
-    'Make sure prompt files exist in the prompts directory.'
+      `Looked in: ${possiblePaths.join(", ")}. ` +
+      "Make sure prompt files exist in the prompts directory.",
   );
 }
 
@@ -190,8 +189,8 @@ export async function generateTypescript(
   }
 
   // Read the prompts from external files.
-  const systemPrompt = readPromptFile("system_prompt.txt")
-  const userPromptTemplate = readPromptFile("user_prompt.txt")
+  const systemPrompt = readPromptFile("system_prompt.txt");
+  const userPromptTemplate = readPromptFile("user_prompt.txt");
 
   // Build the formatted user message by replacing placeholders.
   const userMessage = userPromptTemplate
