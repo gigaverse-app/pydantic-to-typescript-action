@@ -1,6 +1,7 @@
 # Python Pydantic to TypeScript LLM Converter
 
 A GitHub Action that uses an LLM (Claude or GPT) to intelligently convert Python Pydantic models to TypeScript interfaces, maintaining styling and conventions.
+> `uses: gigaverse-app/pydantic-to-typescript-action@v2`
 
 ## Features
 
@@ -43,7 +44,7 @@ jobs:
           path: base-repo
 
       - name: Convert Python to TypeScript
-        uses: yourusername/pydantic-to-typescript-action@v1
+        uses: gigaverse-app/pydantic-to-typescript-action@v2
         with:
           base-python-file: 'base-repo/src/models/schema.py'
           new-python-file: 'src/models/schema.py'
@@ -101,7 +102,7 @@ jobs:
 
       # Convert Python to TypeScript
       - name: Convert Python to TypeScript
-        uses: yourusername/pydantic-to-typescript-action@v1
+        uses: yourusername/pydantic-to-typescript-action@v2
         with:
           base-python-file: 'backend-base-repo/src/models/schema.py'
           new-python-file: 'backend-repo/src/models/schema.py'
