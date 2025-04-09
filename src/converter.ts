@@ -192,8 +192,10 @@ export async function generateTypescript(
   const systemPrompt = readPromptFile("system_prompt.txt");
   const userPromptTemplate = readPromptFile("user_prompt.txt");
 
-  const systemMsgTemplate = SystemMessagePromptTemplate.fromTemplate(systemPrompt);
-  const humanMsgTemplate = HumanMessagePromptTemplate.fromTemplate(userPromptTemplate);
+  const systemMsgTemplate =
+    SystemMessagePromptTemplate.fromTemplate(systemPrompt);
+  const humanMsgTemplate =
+    HumanMessagePromptTemplate.fromTemplate(userPromptTemplate);
 
   // Create a chat prompt template from the message templates.
   const prompt = ChatPromptTemplate.fromMessages([
@@ -214,7 +216,10 @@ export async function generateTypescript(
 
     // Log each rendered message's content.
     renderedMessages.forEach((msg, idx) => {
-      logger.info(`Rendered message ${idx + 1} (${msg.constructor.name}):`, msg.content);
+      logger.info(
+        `Rendered message ${idx + 1} (${msg.constructor.name}):`,
+        msg.content,
+      );
     });
   }
 
