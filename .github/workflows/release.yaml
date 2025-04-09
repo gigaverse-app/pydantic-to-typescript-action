@@ -51,7 +51,7 @@ jobs:
       - name: Copy prompt files
         run: |
           mkdir -p dist/prompts
-          cp prompt/*.txt dist/prompts/
+          cp prompts/*.txt dist/prompts/
           ls -la dist/prompts/
 
       - name: Check if dist is in .gitignore
