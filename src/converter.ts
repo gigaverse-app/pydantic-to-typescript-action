@@ -70,7 +70,7 @@ ${standardPatch.split("\n").slice(4).join("\n")}`;
  */
 export function createLLMClient(config: LLMConfig): BaseChatModel {
   // Default to a high max tokens if not specified
-  const maxTokens = config.maxTokens || 100000;
+  const maxTokens = config.maxTokens || 10000;
 
   if (config.provider === "anthropic") {
     if (!config.anthropicApiKey) {
