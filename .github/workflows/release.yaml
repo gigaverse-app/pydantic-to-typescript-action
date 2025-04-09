@@ -48,6 +48,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Copy prompt files
+        run: |
+          mkdir -p dist/prompts
+          cp src/*.txt dist/prompts/
+          ls -la dist/prompts/
+
       - name: Check if dist is in .gitignore
         id: check_gitignore
         run: |

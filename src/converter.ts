@@ -24,8 +24,6 @@ const logger = winston.createLogger({
 
 export default logger;
 
-const systemPromptPath = path.join(__dirname, "system_prompt.txt");
-const userPromptPath = path.join(__dirname, "user_prompt.txt");
 
 // Define types for LangSmith configuration and LLM configuration.
 export type LangSmithConfig = {
@@ -123,6 +121,27 @@ export function extractTypescriptCode(response: string): string {
     .trim();
 }
 
+// Helper function to read prompt files
+function readPromptFile(filename: string): string {
+  try {
+    // First try to read from the same directory as the current module
+    return fs.readFileSync(path.join(__dirname, filename), 'utf8').trim();
+  } catch (err) {
+    // If that fails, try to read from the src directory
+    try {
+      return fs.readFileSync(path.join(__dirname, '../src', filename), 'utf8').trim();
+    } catch (innerErr) {
+      // If that also fails, check current working directory
+      try {
+        return fs.readFileSync(path.join(process.cwd(), 'src', filename), 'utf8').trim();
+      } catch (finalErr) {
+        console.error(`Error reading prompt file ${filename}: ${finalErr}`);
+        throw new Error(`Could not find prompt file: ${filename}`);
+      }
+    }
+  }
+}
+
 /**
  * Generate TypeScript code using the LLM with streaming output.
  *
@@ -161,8 +180,8 @@ export async function generateTypescript(
   }
 
   // Read the prompts from external files.
-  const systemPrompt = fs.readFileSync(systemPromptPath, "utf8").trim();
-  const userPromptTemplate = fs.readFileSync(userPromptPath, "utf8").trim();
+  const systemPrompt = readPromptFile("system_prompt.txt")
+  const userPromptTemplate = readPromptFile("user_prompt.txt")
 
   // Build the formatted user message by replacing placeholders.
   const userMessage = userPromptTemplate
