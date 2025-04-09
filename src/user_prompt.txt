@@ -1,0 +1,35 @@
+# INPUT
+1. The original Python Pydantic models:
+```
+{basePython}
+```
+
+2. The new Python Pydantic models:
+```
+{newPython}
+```
+
+3. A diff showing what changed:
+```
+{diff}
+```
+
+4. The current TypeScript adaptation:
+```
+{currentTypescript}
+```
+
+5. Custom rule/message (if provided):
+```
+{customPrompt}
+```
+
+# REMINDER: TASK
+Generate an updated version of the TypeScript that:
+- Incorporates all changes from the Python models.
+- Maintains existing styling, naming conventions, and patterns.
+- Preserves any TypeScript-specific optimizations and documentation.
+
+# REMINDER: OUTPUT INSTRUCTIONS
+Return ONLY the complete, updated TypeScript code with no additional explanation.
+Ensure the code is valid and can be saved directly to a file.

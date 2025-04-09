@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import * as diff from "diff";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { ChatOpenAI } from "@langchain/openai";
@@ -8,6 +10,22 @@ import {
 } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import winston from "winston";
+
+const logger = winston.createLogger({
+  level: process.env.NODE_ENV === "test" ? "error" : "info",
+  format: winston.format.simple(),
+  transports: [
+    new winston.transports.Console({
+      silent: process.env.NODE_ENV === "test", // Mutes logging during tests.
+    }),
+  ],
+});
+
+export default logger;
+
+const systemPromptPath = path.join(__dirname, "system_prompt.txt");
+const userPromptPath = path.join(__dirname, "user_prompt.txt");
 
 // Define types for LangSmith configuration and LLM configuration.
 export type LangSmithConfig = {
@@ -65,7 +83,8 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
       apiKey: config.anthropicApiKey,
       modelName: config.model,
       temperature: config.temperature,
-      maxTokens: maxTokens, // Set max tokens to allow larger responses
+      maxTokens: maxTokens,
+      streaming: true, // Enable streaming if supported
     });
   } else if (config.provider === "openai") {
     if (!config.openaiApiKey) {
@@ -76,7 +95,8 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
       apiKey: config.openaiApiKey,
       modelName: config.model,
       temperature: config.temperature,
-      maxTokens: maxTokens, // Set max tokens to allow larger responses
+      maxTokens: maxTokens,
+      streaming: true, // Enable streaming
     });
   }
 
@@ -104,7 +124,10 @@ export function extractTypescriptCode(response: string): string {
 }
 
 /**
- * Generate TypeScript code using the LLM.
+ * Generate TypeScript code using the LLM with streaming output.
+ *
+ * Reads the system and user prompts from external text files, specializes them using the template parameters,
+ * and logs the specialized prompts using a test-friendly logger.
  *
  * @param basePython - Original Python content.
  * @param newPython - New Python content.
@@ -113,7 +136,7 @@ export function extractTypescriptCode(response: string): string {
  * @param llmConfig - LLM configuration.
  * @param customPrompt - Optional custom rule/message.
  * @param langsmithConfig - Optional LangSmith configuration for tracing.
- * @param verbose - If true, print system and user messages, and LLM output.
+ * @param verbose - If true, print messages and each streaming chunk.
  */
 export async function generateTypescript(
   basePython: string,
@@ -125,116 +148,66 @@ export async function generateTypescript(
   langsmithConfig?: LangSmithConfig,
   verbose: boolean = true,
 ): Promise<string> {
-  // Set LangSmith tracing if configuration is provided.
+  // Enable LangSmith tracing if configuration is provided.
   if (langsmithConfig && langsmithConfig.langsmithApiKey) {
     process.env.LANGSMITH_TRACING = "true";
     process.env.LANGSMITH_API_KEY = langsmithConfig.langsmithApiKey;
     process.env.LANGSMITH_PROJECT =
       langsmithConfig.projectName || "pydantic-to-typescript-action";
     process.env.LANGSMITH_RUN = langsmithConfig.runName;
-    console.info("LangSmith tracing enabled.");
+    logger.info("LangSmith tracing enabled.");
   } else {
-    console.info("LangSmith tracing not enabled.");
+    logger.info("LangSmith tracing not enabled.");
   }
 
-  // Define the system prompt with a reminder about the optional custom rule.
-  const systemMessage = `
-You are a specialized AI tasked with updating TypeScript interface definitions based on changes in Python Pydantic models.
-Generate valid TypeScript code that reflects the modifications in the Python models.
-Do not include any extra commentary or explanation.
+  // Read the prompts from external files.
+  const systemPrompt = fs.readFileSync(systemPromptPath, "utf8").trim();
+  const userPromptTemplate = fs.readFileSync(userPromptPath, "utf8").trim();
 
-# CONTEXT
-I have Python Pydantic models that define an API schema, and a corresponding TypeScript adaptation.
-The Python models have been modified, and I need you to update the TypeScript accordingly.
+  // Build the formatted user message by replacing placeholders.
+  const userMessage = userPromptTemplate
+    .replace("{basePython}", basePython)
+    .replace("{newPython}", newPython)
+    .replace("{diff}", diffText)
+    .replace("{currentTypescript}", currentTypescript)
+    .replace("{customPrompt}", customPrompt || "");
 
-# INPUT
-I will provide:
-1. The original Python Pydantic models
-2. The new Python Pydantic models
-3. A diff showing what changed
-4. The current TypeScript adaptation
-
-# REMINDER
-An optional custom rule/message might be provided as an additional instruction.
-
-# TASK
-Generate an updated version of the TypeScript that:
-- Incorporates all changes from the Python models.
-- Maintains existing styling, naming conventions, and patterns.
-- Preserves any TypeScript-specific optimizations and documentation.
-
-# OUTPUT INSTRUCTIONS
-Return ONLY the complete, updated TypeScript code with no additional explanation.
-Ensure the code is valid and can be saved directly to a file.
-  `.trim();
-
-  // Define the user prompt with a placeholder for the custom rule.
-  const userMessage = `
-# INPUT
-1. The original Python Pydantic models:
-\`\`\`
-{basePython}
-\`\`\`
-
-2. The new Python Pydantic models:
-\`\`\`
-{newPython}
-\`\`\`
-
-3. A diff showing what changed:
-\`\`\`
-{diff}
-\`\`\`
-
-4. The current TypeScript adaptation:
-\`\`\`
-{currentTypescript}
-\`\`\`
-
-5. Custom rule/message (if provided):
-\`\`\`
-{customPrompt}
-\`\`\`
-
-# REMINDER: TASK
-Generate an updated version of the TypeScript that:
-- Incorporates all changes from the Python models.
-- Maintains existing styling, naming conventions, and patterns.
-- Preserves any TypeScript-specific optimizations and documentation.
-
-# REMINDER: OUTPUT INSTRUCTIONS
-Return ONLY the complete, updated TypeScript code with no additional explanation.
-Ensure the code is valid and can be saved directly to a file.
-  `.trim();
-
+  // Log the specialized prompts.
   if (verbose) {
-    console.log("System Message:");
-    console.log(systemMessage);
-    console.log("User Message:");
-    console.log(userMessage);
+    logger.info("Specialized System Prompt:");
+    logger.info(systemPrompt);
+    logger.info("Specialized User Prompt:");
+    logger.info(userMessage);
   }
 
-  // Build the LangChain prompt chain.
+  // Build the LangChain prompt chain using prompts from files.
   const chain = ChatPromptTemplate.fromMessages([
-    SystemMessagePromptTemplate.fromTemplate(systemMessage),
+    SystemMessagePromptTemplate.fromTemplate(systemPrompt),
     HumanMessagePromptTemplate.fromTemplate(userMessage),
   ])
     .pipe(createLLMClient(llmConfig))
     .pipe(new StringOutputParser());
 
-  console.info("Invoking LLM chain...");
-  const response = await chain.invoke({
+  logger.info("Invoking LLM chain with streaming output...");
+
+  // Use .stream() to receive output tokens as they are generated.
+  const stream = await chain.stream({
     basePython,
     newPython,
     diff: diffText,
     currentTypescript,
-    customPrompt, // Substituted even if empty.
+    customPrompt, // Provided even if empty.
   });
 
-  if (verbose) {
-    console.log("LLM Output:");
-    console.log(response);
+  let fullOutput = "";
+  for await (const chunk of stream) {
+    fullOutput += chunk;
+    if (verbose) {
+      logger.info("Streaming chunk:", chunk);
+    }
   }
 
-  return extractTypescriptCode(response);
+  logger.info("LLM streaming complete. Final output received.");
+
+  return extractTypescriptCode(fullOutput);
 }

@@ -26,6 +26,7 @@ describe("converter.ts extended tests", () => {
         apiKey: "test-key",
         modelName: "test-model",
         temperature: 0.5,
+        streaming: true,
         maxTokens: 100000, // Add this to match the updated implementation
       });
       expect(client).toBeInstanceOf(ChatAnthropic);
@@ -46,6 +47,7 @@ describe("converter.ts extended tests", () => {
         modelName: "test-model",
         temperature: 0.5,
         maxTokens: 100000, // Add this to match the updated implementation
+        streaming: true,
       });
       expect(client).toBeInstanceOf(ChatOpenAI);
     });
@@ -66,6 +68,7 @@ describe("converter.ts extended tests", () => {
         modelName: "test-model",
         temperature: 0.5,
         maxTokens: 50000, // Should use the custom value
+        streaming: true,
       });
       expect(client).toBeInstanceOf(ChatAnthropic);
     });

@@ -1,0 +1,428 @@
+
+> pydantic-to-typescript-action@2.0.3 test
+> jest
+
+FAIL src/__tests__/converter.extended.test.ts
+  ● converter.ts extended tests › createLLMClient › should create an OpenAI client when provider is openai
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      Object {
+        "apiKey": "test-key",
+        "maxTokens": 100000,
+        "modelName": "test-model",
+    +   "streaming": true,
+        "temperature": 0.5,
+      },
+
+    Number of calls: 1
+
+      43 |       const client = createLLMClient(config);
+      44 |
+    > 45 |       expect(ChatOpenAI).toHaveBeenCalledWith({
+         |                          ^
+      46 |         apiKey: "test-key",
+      47 |         modelName: "test-model",
+      48 |         temperature: 0.5,
+
+      at Object.<anonymous> (src/__tests__/converter.extended.test.ts:45:26)
+
+  ● converter.ts extended tests › createLLMClient › should create an Anthropic client with custom maxTokens
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      Object {
+        "apiKey": "test-key",
+        "maxTokens": 50000,
+        "modelName": "test-model",
+    +   "streaming": true,
+        "temperature": 0.5,
+      },
+
+    Number of calls: 1
+
+      63 |       const client = createLLMClient(config);
+      64 |
+    > 65 |       expect(ChatAnthropic).toHaveBeenCalledWith({
+         |                             ^
+      66 |         apiKey: "test-key",
+      67 |         modelName: "test-model",
+      68 |         temperature: 0.5,
+
+      at Object.<anonymous> (src/__tests__/converter.extended.test.ts:65:29)
+
+PASS src/__tests__/index.test.ts
+PASS src/__tests__/converter.integration.more.test.ts
+  ● Console
+
+    console.log
+      info: LangSmith tracing not enabled.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: Specialized System Prompt:
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: You are a specialized AI tasked with updating TypeScript interface definitions based on changes in Python Pydantic models.
+      Generate valid TypeScript code that reflects the modifications in the Python models.
+      Do not include any extra commentary or explanation.
+      
+      # CONTEXT
+      I have Python Pydantic models that define an API schema, and a corresponding TypeScript adaptation.
+      The Python models have been modified, and I need you to update the TypeScript accordingly.
+      
+      # INPUT
+      I will provide:
+      1. The original Python Pydantic models
+      2. The new Python Pydantic models
+      3. A diff showing what changed
+      4. The current TypeScript adaptation
+      
+      # REMINDER
+      An optional custom rule/message might be provided as an additional instruction.
+      
+      # TASK
+      Generate an updated version of the TypeScript that:
+      - Incorporates all changes from the Python models.
+      - Maintains existing styling, naming conventions, and patterns.
+      - Preserves any TypeScript-specific optimizations and documentation.
+      
+      # OUTPUT INSTRUCTIONS
+      Return ONLY the complete, updated TypeScript code with no additional explanation.
+      Ensure the code is valid and can be saved directly to a file.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: Specialized User Prompt:
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: # INPUT
+      1. The original Python Pydantic models:
+      ```
+      
+      from pydantic import BaseModel
+      from typing import List, Optional
+      
+      class User(BaseModel):
+          id: int
+          name: str
+          email: str
+      
+      ```
+      
+      2. The new Python Pydantic models:
+      ```
+      
+      from pydantic import BaseModel
+      from typing import List, Optional
+      
+      class User(BaseModel):
+          id: int
+          name: str
+          email: str
+          age: Optional[int] = None
+      
+      ```
+      
+      3. A diff showing what changed:
+      ```
+      diff --git a/models.py b/models.py
+      --- a/models.py
+      +++ b/models.py
+      @@ -5,4 +5,5 @@
+       class User(BaseModel):
+           id: int
+           name: str
+           email: str
+      +    age: Optional[int] = None
+      
+      ```
+      
+      4. The current TypeScript adaptation:
+      ```
+      
+      export interface User {
+        id: number;
+        name: string;
+        email: string;
+      }
+      
+      ```
+      
+      5. Custom rule/message (if provided):
+      ```
+      
+      ```
+      
+      # REMINDER: TASK
+      Generate an updated version of the TypeScript that:
+      - Incorporates all changes from the Python models.
+      - Maintains existing styling, naming conventions, and patterns.
+      - Preserves any TypeScript-specific optimizations and documentation.
+      
+      # REMINDER: OUTPUT INSTRUCTIONS
+      Return ONLY the complete, updated TypeScript code with no additional explanation.
+      Ensure the code is valid and can be saved directly to a file.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: LangSmith tracing not enabled.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: Specialized System Prompt:
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: You are a specialized AI tasked with updating TypeScript interface definitions based on changes in Python Pydantic models.
+      Generate valid TypeScript code that reflects the modifications in the Python models.
+      Do not include any extra commentary or explanation.
+      
+      # CONTEXT
+      I have Python Pydantic models that define an API schema, and a corresponding TypeScript adaptation.
+      The Python models have been modified, and I need you to update the TypeScript accordingly.
+      
+      # INPUT
+      I will provide:
+      1. The original Python Pydantic models
+      2. The new Python Pydantic models
+      3. A diff showing what changed
+      4. The current TypeScript adaptation
+      
+      # REMINDER
+      An optional custom rule/message might be provided as an additional instruction.
+      
+      # TASK
+      Generate an updated version of the TypeScript that:
+      - Incorporates all changes from the Python models.
+      - Maintains existing styling, naming conventions, and patterns.
+      - Preserves any TypeScript-specific optimizations and documentation.
+      
+      # OUTPUT INSTRUCTIONS
+      Return ONLY the complete, updated TypeScript code with no additional explanation.
+      Ensure the code is valid and can be saved directly to a file.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: Specialized User Prompt:
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: # INPUT
+      1. The original Python Pydantic models:
+      ```
+      
+      from pydantic import BaseModel
+      from typing import List, Optional
+      
+      class User(BaseModel):
+          id: int
+          name: str
+          email: str
+      
+      ```
+      
+      2. The new Python Pydantic models:
+      ```
+      
+      from pydantic import BaseModel
+      from typing import List, Optional
+      
+      class User(BaseModel):
+          id: int
+          name: str
+          email: str
+          age: Optional[int] = None
+      
+      ```
+      
+      3. A diff showing what changed:
+      ```
+      diff --git a/models.py b/models.py
+      --- a/models.py
+      +++ b/models.py
+      @@ -5,4 +5,5 @@
+       class User(BaseModel):
+           id: int
+           name: str
+           email: str
+      +    age: Optional[int] = None
+      
+      ```
+      
+      4. The current TypeScript adaptation:
+      ```
+      
+      export interface User {
+        id: number;
+        name: string;
+        email: string;
+      }
+      
+      ```
+      
+      5. Custom rule/message (if provided):
+      ```
+      
+      ```
+      
+      # REMINDER: TASK
+      Generate an updated version of the TypeScript that:
+      - Incorporates all changes from the Python models.
+      - Maintains existing styling, naming conventions, and patterns.
+      - Preserves any TypeScript-specific optimizations and documentation.
+      
+      # REMINDER: OUTPUT INSTRUCTIONS
+      Return ONLY the complete, updated TypeScript code with no additional explanation.
+      Ensure the code is valid and can be saved directly to a file.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: LangSmith tracing not enabled.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: Specialized System Prompt:
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: You are a specialized AI tasked with updating TypeScript interface definitions based on changes in Python Pydantic models.
+      Generate valid TypeScript code that reflects the modifications in the Python models.
+      Do not include any extra commentary or explanation.
+      
+      # CONTEXT
+      I have Python Pydantic models that define an API schema, and a corresponding TypeScript adaptation.
+      The Python models have been modified, and I need you to update the TypeScript accordingly.
+      
+      # INPUT
+      I will provide:
+      1. The original Python Pydantic models
+      2. The new Python Pydantic models
+      3. A diff showing what changed
+      4. The current TypeScript adaptation
+      
+      # REMINDER
+      An optional custom rule/message might be provided as an additional instruction.
+      
+      # TASK
+      Generate an updated version of the TypeScript that:
+      - Incorporates all changes from the Python models.
+      - Maintains existing styling, naming conventions, and patterns.
+      - Preserves any TypeScript-specific optimizations and documentation.
+      
+      # OUTPUT INSTRUCTIONS
+      Return ONLY the complete, updated TypeScript code with no additional explanation.
+      Ensure the code is valid and can be saved directly to a file.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: Specialized User Prompt:
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      info: # INPUT
+      1. The original Python Pydantic models:
+      ```
+      
+      from pydantic import BaseModel
+      from typing import List, Optional
+      
+      class User(BaseModel):
+          id: int
+          name: str
+          email: str
+      
+      ```
+      
+      2. The new Python Pydantic models:
+      ```
+      
+      from pydantic import BaseModel
+      from typing import List, Optional
+      
+      class User(BaseModel):
+          id: int
+          name: str
+          email: str
+          age: Optional[int] = None
+      
+      ```
+      
+      3. A diff showing what changed:
+      ```
+      diff --git a/models.py b/models.py
+      --- a/models.py
+      +++ b/models.py
+      @@ -5,4 +5,5 @@
+       class User(BaseModel):
+           id: int
+           name: str
+           email: str
+      +    age: Optional[int] = None
+      
+      ```
+      
+      4. The current TypeScript adaptation:
+      ```
+      
+      export interface User {
+        id: number;
+        name: string;
+        email: string;
+      }
+      
+      ```
+      
+      5. Custom rule/message (if provided):
+      ```
+      
+      ```
+      
+      # REMINDER: TASK
+      Generate an updated version of the TypeScript that:
+      - Incorporates all changes from the Python models.
+      - Maintains existing styling, naming conventions, and patterns.
+      - Preserves any TypeScript-specific optimizations and documentation.
+      
+      # REMINDER: OUTPUT INSTRUCTIONS
+      Return ONLY the complete, updated TypeScript code with no additional explanation.
+      Ensure the code is valid and can be saved directly to a file.
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+PASS src/__tests__/converter.test.ts
+--------------|---------|----------|---------|---------|-------------------
+File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+--------------|---------|----------|---------|---------|-------------------
+All files     |   86.23 |       75 |     100 |   86.23 |                   
+ converter.ts |   76.27 |    79.16 |     100 |   76.27 | 148-153,186-207   
+ index.ts     |      98 |    68.75 |     100 |      98 | 105               
+--------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 1 failed, 1 skipped, 3 passed, 4 of 5 total
+Tests:       2 failed, 8 skipped, 19 passed, 29 total
+Snapshots:   0 total
+Time:        1.664 s, estimated 2 s
+Ran all test suites.
