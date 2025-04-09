@@ -4,7 +4,7 @@
     "description": "GitHub Action to convert Python Pydantic models to TypeScript using LLMs",
     "main": "dist/index.js",
     "scripts": {
-        "build": "ncc build src/index.ts -o dist --source-map && mkdir -p dist/prompts && cp prompts/*.txt dist/prompts/"
+        "build": "ncc build src/index.ts -o dist --source-map && mkdir -p dist/prompts && cp prompts/*.txt dist/prompts/",
         "test": "jest",
         "lint": "eslint 'src/**/*.ts'",
         "format": "prettier --write 'src/**/*.ts'",

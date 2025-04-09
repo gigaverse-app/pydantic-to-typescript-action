@@ -121,25 +121,35 @@ export function extractTypescriptCode(response: string): string {
     .trim();
 }
 
-// Helper function to read prompt files
+// Helper function to read a prompt file from multiple possible locations
 function readPromptFile(filename: string): string {
-  try {
-    // First try to read from the same directory as the current module
-    return fs.readFileSync(path.join(__dirname, filename), 'utf8').trim();
-  } catch (err) {
-    // If that fails, try to read from the src directory
+  // Possible locations to check for the prompt file
+  const possiblePaths = [
+    // Within the distributed/compiled action
+    path.join(__dirname, 'prompts', filename),
+    // During development or tests
+    path.join(__dirname, '../prompts', filename),
+    // At the repository root
+    path.join(process.cwd(), 'prompts', filename)
+  ];
+
+  // Try each path until we find the file
+  for (const filePath of possiblePaths) {
     try {
-      return fs.readFileSync(path.join(__dirname, '../src', filename), 'utf8').trim();
-    } catch (innerErr) {
-      // If that also fails, check current working directory
-      try {
-        return fs.readFileSync(path.join(process.cwd(), 'src', filename), 'utf8').trim();
-      } catch (finalErr) {
-        console.error(`Error reading prompt file ${filename}: ${finalErr}`);
-        throw new Error(`Could not find prompt file: ${filename}`);
+      if (fs.existsSync(filePath)) {
+        return fs.readFileSync(filePath, 'utf8').trim();
       }
+    } catch (err) {
+      // Continue to the next path
     }
   }
+
+  // If we couldn't find the file anywhere, throw an error with helpful information
+  throw new Error(
+    `Could not find prompt file: ${filename}. ` +
+    `Looked in: ${possiblePaths.join(', ')}. ` +
+    'Make sure prompt files exist in the prompts directory.'
+  );
 }
 
 /**
