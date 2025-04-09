@@ -3,7 +3,25 @@
 # Set default version type to patch if no argument is provided
 VERSION_TYPE=${1:-patch}
 
+# Build the project first
+echo "Building the project..."
+npm run build
+
+# Check if build was successful
+if [ $? -ne 0 ]; then
+  echo "Build failed! Aborting release."
+  exit 1
+fi
+
+# Add the dist folder to git
+echo "Adding dist folder to git..."
+git add -f dist/
+
+# Commit the dist folder
+git commit -m "Build dist for release [skip ci]" || echo "No changes to commit"
+
 # Create new version
+echo "Creating new version (${VERSION_TYPE})..."
 npm version $VERSION_TYPE
 
 # Get the new version number

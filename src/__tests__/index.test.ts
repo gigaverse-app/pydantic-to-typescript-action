@@ -19,25 +19,41 @@ describe("index.ts", () => {
 
     // Setup default mock implementations
     (core.getInput as jest.Mock).mockImplementation((name) => {
-      if (name === "base-python-file") return "base.py";
-      if (name === "new-python-file") return "new.py";
-      if (name === "current-typescript-file") return "current.ts";
-      if (name === "output-typescript-file") return "output.ts";
-      if (name === "model-provider") return "anthropic";
-      if (name === "model-name") return "test-model";
-      if (name === "temperature") return "0.1";
-      if (name === "anthropic-api-key") return "test-key";
-      return "";
+      switch (name) {
+        case "base-python-file":
+          return "base.py";
+        case "new-python-file":
+          return "new.py";
+        case "current-typescript-file":
+          return "current.ts";
+        case "output-typescript-file":
+          return "output.ts";
+        case "model-provider":
+          return "anthropic";
+        case "model-name":
+          return "test-model";
+        case "temperature":
+          return "0.1";
+        case "anthropic-api-key":
+          return "test-key";
+        default:
+          return "";
+      }
     });
 
     (fs.access as jest.Mock).mockResolvedValue(undefined);
     (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
     (fs.readFile as jest.Mock).mockImplementation((filePath) => {
-      if (filePath === "base.py") return Promise.resolve("Base Python content");
-      if (filePath === "new.py") return Promise.resolve("New Python content");
-      if (filePath === "current.ts")
-        return Promise.resolve("Current TypeScript content");
-      return Promise.resolve("");
+      switch (filePath) {
+        case "base.py":
+          return Promise.resolve("Base Python content");
+        case "new.py":
+          return Promise.resolve("New Python content");
+        case "current.ts":
+          return Promise.resolve("Current TypeScript content");
+        default:
+          return Promise.resolve("");
+      }
     });
     (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
 
@@ -83,7 +99,7 @@ describe("index.ts", () => {
       "New Python content",
     );
 
-    // Verify TypeScript was generated
+    // Verify TypeScript was generated with proper config
     expect(converter.generateTypescript).toHaveBeenCalledWith(
       "Base Python content",
       "New Python content",
@@ -108,6 +124,7 @@ describe("index.ts", () => {
     );
 
     // Verify info messages were logged
+    expect(core.info).toHaveBeenCalledWith("Validating input files...");
     expect(core.info).toHaveBeenCalledWith("Reading input files...");
     expect(core.info).toHaveBeenCalledWith(
       "Generating diff between Python files...",
@@ -147,5 +164,48 @@ describe("index.ts", () => {
     expect(core.setFailed).toHaveBeenCalledWith(
       "Failed to read file base.py: Read error",
     );
+  });
+
+  it("should configure LangSmith when API key is provided", async () => {
+    // Setup mock to provide LangSmith API key
+    const originalMockImpl = (
+      core.getInput as jest.Mock
+    ).getMockImplementation();
+    (core.getInput as jest.Mock).mockImplementation((name, options) => {
+      if (name === "langsmith-api-key") return "langsmith-key";
+      if (name === "langsmith-project") return "custom-project";
+      // Call the original mock implementation for other inputs
+      return originalMockImpl ? originalMockImpl(name, options) : "";
+    });
+
+    (path.basename as jest.Mock).mockReturnValue("basename-result");
+
+    // Run the function
+    await run();
+
+    // Verify LangSmith config was passed to generateTypescript
+    expect(converter.generateTypescript).toHaveBeenCalledWith(
+      "Base Python content",
+      "New Python content",
+      "Mock diff",
+      "Current TypeScript content",
+      {
+        provider: "anthropic",
+        model: "test-model",
+        anthropicApiKey: "test-key",
+        openaiApiKey: "",
+        temperature: 0.1,
+      },
+      "",
+      {
+        langsmithApiKey: "langsmith-key",
+        projectName: "custom-project",
+        runName: "basename-result",
+      },
+      true,
+    );
+
+    // Verify the basename function was called with the correct path
+    expect(path.basename).toHaveBeenCalledWith("base.py");
   });
 });
