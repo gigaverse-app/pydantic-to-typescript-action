@@ -102,7 +102,7 @@ jobs:
 
       # Convert Python to TypeScript
       - name: Convert Python to TypeScript
-        uses: yourusername/pydantic-to-typescript-action@v2
+        uses: gigaverse-app/pydantic-to-typescript-action@v2
         with:
           base-python-file: 'backend-base-repo/src/models/schema.py'
           new-python-file: 'backend-repo/src/models/schema.py'
