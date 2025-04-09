@@ -86,7 +86,7 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
 /**
  * Extract TypeScript code from an LLM response if wrapped in code blocks.
  */
-function extractTypescriptCode(response: string): string {
+export function extractTypescriptCode(response: string): string {
   const typescriptBlockMatch = response.match(
     /```typescript\s*([\s\S]*?)\s*```/,
   );
