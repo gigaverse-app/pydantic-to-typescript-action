@@ -71,9 +71,141 @@ jobs:
           name: dist
           path: dist/
 
-  version-bump:
+  verify:
     runs-on: ubuntu-latest
     needs: build
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      # Print version info for verification
+      - name: Print Version Info
+        run: |
+          echo "Package version: $(node -p "require('./package.json').version")"
+          echo "Git commit: $(git rev-parse HEAD)"
+          echo "Node version: $(node --version)"
+
+      # Create test files
+      - name: Create Test Files
+        run: |
+          mkdir -p test-files
+          
+          # Create base Python file
+          cat > test-files/base.py << 'EOF'
+          from pydantic import BaseModel
+          from typing import List, Optional, Dict
+
+          class Address(BaseModel):
+              street: str
+              city: str
+              zipcode: str
+
+          class User(BaseModel):
+              id: int
+              name: str
+              email: str
+              addresses: List[Address] = []
+          EOF
+          
+          # Create new Python file with changes
+          cat > test-files/new.py << 'EOF'
+          from pydantic import BaseModel
+          from typing import List, Optional, Dict, Any
+
+          class Address(BaseModel):
+              street: str
+              city: str
+              zipcode: str
+              country: Optional[str] = None
+
+          class User(BaseModel):
+              id: int
+              name: str
+              email: str
+              addresses: List[Address] = []
+              age: Optional[int] = None
+              metadata: Dict[str, Any] = {}
+          EOF
+          
+          # Create current TypeScript file
+          cat > test-files/current.ts << 'EOF'
+          export interface Address {
+            street: string;
+            city: string;
+            zipcode: string;
+          }
+
+          export interface User {
+            id: number;
+            name: string;
+            email: string;
+            addresses?: Address[];
+          }
+          EOF
+          
+          # Create output directory
+          mkdir -p test-files/output
+
+      # Execute the action with the built files
+      - name: Test Action
+        id: test_action
+        run: |
+          echo "Testing action by executing it directly..."
+          # Enable detailed debugging
+          NODE_DEBUG=anthropic,langchain,langsmith node dist/index.js
+        env:
+          INPUT_BASE-PYTHON-FILE: test-files/base.py
+          INPUT_NEW-PYTHON-FILE: test-files/new.py
+          INPUT_CURRENT-TYPESCRIPT-FILE: test-files/current.ts
+          INPUT_OUTPUT-TYPESCRIPT-FILE: test-files/output/updated.ts
+          INPUT_MODEL-PROVIDER: ${{ vars.MODEL_PROVIDER || 'anthropic' }}
+          INPUT_MODEL-NAME: ${{ vars.MODEL_NAME || 'claude-3-7-sonnet-latest' }}
+          INPUT_ANTHROPIC-API-KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          INPUT_OPENAI-API-KEY: ${{ secrets.OPENAI_API_KEY }}
+          INPUT_TEMPERATURE: 0.1
+          INPUT_VERBOSE: "true"
+
+      # Verify the output looks correct
+      - name: Verify Output
+        run: |
+          echo "Checking if output file was created..."
+          if [ ! -f "test-files/output/updated.ts" ]; then
+            echo "Error: Output file was not created"
+            exit 1
+          fi
+          
+          echo "Verifying output file content..."
+          cat test-files/output/updated.ts
+          
+          # Check for expected content
+          if ! grep -q "country?: string" test-files/output/updated.ts; then
+            echo "Error: Output file does not contain expected field 'country?: string'"
+            exit 1
+          fi
+          
+          if ! grep -q "age?: number" test-files/output/updated.ts; then
+            echo "Error: Output file does not contain expected field 'age?: number'"
+            exit 1
+          fi
+          
+          if ! grep -q "metadata?: Record<string, any>" test-files/output/updated.ts; then
+            echo "Error: Output file does not contain expected field 'metadata?: Record<string, any>'"
+            exit 1
+          fi
+          
+          echo "✅ Verification successful: Output contains expected changes"
+
+  version-bump:
+    runs-on: ubuntu-latest
+    needs: [build, verify]
     if: github.event_name == 'workflow_dispatch' && (github.event.inputs.version_type != '' || github.event.inputs.custom_version != '')
     permissions:
       contents: write
@@ -139,7 +271,7 @@ jobs:
           labels: 'version-bump,automated-pr'
 
   release:
-    needs: [build]
+    needs: [build, verify]
     # Only run on version tags or from workflow dispatch that created a new version
     if: |
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || 
@@ -205,3 +337,4 @@ jobs:
             To use this action, see the examples in the README.
           generate_release_notes: true
           draft: false
+          
