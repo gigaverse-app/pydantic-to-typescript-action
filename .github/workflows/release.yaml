@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - 'v*.*.*'  # Only trigger on semantic version tags (v1.0.0, v2.3.4, etc.)
   workflow_dispatch:
     inputs:
       version_type:
@@ -138,48 +138,20 @@ jobs:
           delete-branch: true
           labels: 'version-bump,automated-pr'
 
-  auto-tag:
-    needs: build
+  release:
+    needs: [build]
+    # Only run on version tags or from workflow dispatch that created a new version
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || 
+      (github.event_name == 'workflow_dispatch' && needs.version-bump.outputs.new_version != '')
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
-    outputs:
-      new_tag: ${{ steps.tag_version.outputs.new_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
-      - name: Get package version
-        id: get_version
-        run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "package_version=v$PACKAGE_VERSION" >> $GITHUB_OUTPUT
-      
-      - name: Create tag if needed
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          custom_tag: ${{ steps.get_version.outputs.package_version }}
-          tag_prefix: ''
-          create_annotated_tag: true
-
-  release:
-    needs: [build, auto-tag, version-bump]
-    if: |
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || 
-      (needs.auto-tag.outputs.new_tag != '') || 
-      (needs.version-bump.outputs.new_version != '')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
           ref: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.ref || '' }}
 
       - name: Download build artifacts
@@ -201,11 +173,21 @@ jobs:
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          elif [ "${{ needs.version-bump.outputs.new_version }}" != "" ]; then
-            echo "tag=${{ needs.version-bump.outputs.new_version }}" >> $GITHUB_OUTPUT
           else
-            echo "tag=${{ needs.auto-tag.outputs.new_tag }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ needs.version-bump.outputs.new_version }}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Update major version tag
+        run: |
+          # Get the tag we're using for this release
+          RELEASE_TAG="${{ steps.tag_name.outputs.tag }}"
+          
+          # Extract the major version
+          MAJOR_VERSION=$(echo "$RELEASE_TAG" | cut -d. -f1)
+          
+          # Create or update the major version tag
+          git tag -f "$MAJOR_VERSION" "$RELEASE_TAG"
+          git push -f origin "$MAJOR_VERSION"
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -223,4 +205,3 @@ jobs:
             To use this action, see the examples in the README.
           generate_release_notes: true
           draft: false
-          
