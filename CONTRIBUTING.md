@@ -21,7 +21,7 @@ This guide covers all aspects of developing, testing, and releasing the Pydantic
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/pydantic-to-typescript-action.git
+   git clone https://github.com/gigaverse-app/pydantic-to-typescript-action.git
    cd pydantic-to-typescript-action
    ```
 
@@ -85,45 +85,44 @@ describe('converter', () => {
 
 ## Versioning and Releasing
 
-This project follows [Semantic Versioning](https://semver.org/).
+### Simple Development Workflow
 
-### Creating a New Version
+1. **Regular Development:**
+   ```bash
+   # Make your changes
+   git add .
+   git commit -m "Your commit message"
+   git push
+   ```
+   The GitHub Actions workflow will build your code and run tests to verify your changes.
 
-To create and publish a new version:
+2. **Releasing a New Version:**
+   ```bash
+   # Create and push a new release (defaults to patch)
+   ./release.sh
+   
+   # For minor or major releases
+   ./release.sh minor
+   ./release.sh major
+   ```
+   
+   This script will:
+   - Update the version in package.json
+   - Create the appropriate git tags
+   - Push changes and tags
+   - Update the major version tag (e.g., v1, v2) to point to your latest release
 
-```bash
-# For bug fixes (1.0.0 → 1.0.1)
-npm version patch
+Users referencing your action with `@v2` will automatically get the latest v2.x.x release.
 
-# For new features (1.0.0 → 1.1.0)
-npm version minor
+### About the Release Script
 
-# For breaking changes (1.0.0 → 2.0.0)
-npm version major
+The release script handles all the complexities of GitHub Action versioning for you:
 
-# Push the changes and tags
-git push --follow-tags
-```
+1. It creates a specific version tag (e.g., v2.1.0) with `npm version`
+2. It updates the major version tag (e.g., v2) to point to the latest release
+3. It pushes all necessary tags to GitHub
 
-When you push a new tag, the release workflow automatically:
-1. Builds the action code (including the `/dist` folder)
-2. Creates a GitHub release
-3. Makes the new version available in the GitHub Marketplace
-
-### How Versioning Works
-
-The versioning process leverages GitHub's tag-based release system:
-
-1. The `npm version` command:
-   - Updates the version in `package.json`
-   - Creates a Git tag (e.g., `v1.0.1`)
-   - Commits these changes
-
-2. When you push with `--follow-tags`:
-   - Both code changes and the new tag are pushed to GitHub
-   - The tag triggers the release workflow
-
-3. GitHub uses these tags to determine which version to use when someone references your action with `@v1` or `@v1.0.1`
+This ensures your action works correctly with all types of version references.
 
 ## GitHub Marketplace Integration
 
@@ -133,22 +132,19 @@ Users typically reference your action in one of these ways:
 
 ```yaml
 # Major version reference (most common)
-uses: yourusername/pydantic-to-typescript-action@v1
+uses: gigaverse-app/pydantic-to-typescript-action@v2
 
 # Specific version reference
-uses: yourusername/pydantic-to-typescript-action@v1.0.2
+uses: gigaverse-app/pydantic-to-typescript-action@v2.0.2
 ```
 
 ### Important Notes on Marketplace Publishing
 
 - **First-time publishing** requires manual submission through the GitHub UI. After a release is created, you'll see a "Publish this Action to the GitHub Marketplace" button.
 
-- **Subsequent updates** within the same major version (v1.x.x) are automatically available to users:
-  - No need to manually republish to the Marketplace
-  - Users referencing `@v1` automatically get the latest v1.x.x version
-  - The Marketplace listing automatically shows the latest version
+- **Subsequent updates** within the same major version (v2.x.x) are automatically available to users without republishing to the Marketplace.
 
-- **Major version releases** (v2.0.0) appear as separate entries in the Marketplace
+- **Action.yaml requirements**: Make sure your action.yaml includes a name, description, and all required inputs.
 
 ## Common Tasks
 
@@ -182,9 +178,13 @@ npm update
 If the automatic release doesn't work as expected:
 
 1. Check the GitHub Actions logs
-2. Make sure you've pushed the tag with `git push --follow-tags`
-3. Verify that the version in `package.json` matches the tag
-4. Ensure the workflow has correct permissions to create releases
+2. Ensure the release workflow completed successfully
+3. If the major version tag (e.g., v2) wasn't updated, run:
+   ```bash
+   # Replace X.Y.Z with your current version
+   git tag -f vX vX.Y.Z
+   git push -f origin vX
+   ```
 
 ### Local Testing of the Action
 
