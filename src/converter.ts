@@ -192,27 +192,34 @@ export async function generateTypescript(
   const systemPrompt = readPromptFile("system_prompt.txt");
   const userPromptTemplate = readPromptFile("user_prompt.txt");
 
-  // Build the formatted user message by replacing placeholders.
-  const userMessage = userPromptTemplate
-    .replace("{basePython}", basePython)
-    .replace("{newPython}", newPython)
-    .replace("{diff}", diffText)
-    .replace("{currentTypescript}", currentTypescript)
-    .replace("{customPrompt}", customPrompt || "");
+  const systemMsgTemplate = SystemMessagePromptTemplate.fromTemplate(systemPrompt);
+  const humanMsgTemplate = HumanMessagePromptTemplate.fromTemplate(userPromptTemplate);
+
+  // Create a chat prompt template from the message templates.
+  const prompt = ChatPromptTemplate.fromMessages([
+    systemMsgTemplate,
+    humanMsgTemplate,
+  ]);
 
   // Log the specialized prompts.
   if (verbose) {
-    logger.info("Specialized System Prompt:");
-    logger.info(systemPrompt);
-    logger.info("Specialized User Prompt:");
-    logger.info(userMessage);
+    // Render the prompt messages using the provided variables.
+    const renderedMessages = await prompt.formatMessages({
+      basePython,
+      newPython,
+      diff: diffText,
+      currentTypescript,
+      customPrompt: customPrompt || "",
+    });
+
+    // Log each rendered message's content.
+    renderedMessages.forEach((msg, idx) => {
+      logger.info(`Rendered message ${idx + 1} (${msg.constructor.name}):`, msg.content);
+    });
   }
 
   // Build the LangChain prompt chain using prompts from files.
-  const chain = ChatPromptTemplate.fromMessages([
-    SystemMessagePromptTemplate.fromTemplate(systemPrompt),
-    HumanMessagePromptTemplate.fromTemplate(userMessage),
-  ])
+  const chain = prompt
     .pipe(createLLMClient(llmConfig))
     .pipe(new StringOutputParser());
 
