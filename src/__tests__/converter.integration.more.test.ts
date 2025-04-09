@@ -1,11 +1,15 @@
 /**
  * Comprehensive Integration Tests
- * 
+ *
  * These tests use real API calls to test the converter functionality.
  * Tests will be skipped if API keys aren't available.
  */
 
-import { generateTypescript, createDiff, extractTypescriptCode } from "../converter";
+import {
+  generateTypescript,
+  createDiff,
+  extractTypescriptCode,
+} from "../converter";
 
 // Check for API keys
 const hasAnthropicKey = process.env.ANTHROPIC_API_KEY ? true : false;
@@ -43,13 +47,6 @@ export interface User {
 
 // Create a diff
 const diff = createDiff("models.py", basePython, "models.py", newPython);
-
-// Helper function to check if an API key is defined
-function hasRequiredApiKeys(provider: string): boolean {
-  if (provider === 'anthropic') return hasAnthropicKey;
-  if (provider === 'openai') return hasOpenAIKey;
-  return false;
-}
 
 describe("Python to TypeScript Converter - Integration Tests", () => {
   // Long timeout for API calls
@@ -97,13 +94,23 @@ export interface User {
 
   describe("createDiff", () => {
     it("should create a diff with added lines", () => {
-      const result = createDiff("models.py", basePython, "models.py", newPython);
+      const result = createDiff(
+        "models.py",
+        basePython,
+        "models.py",
+        newPython,
+      );
       expect(result).toContain("diff --git");
       expect(result).toContain("+    age: Optional[int] = None");
     });
 
     it("should handle different file paths", () => {
-      const result = createDiff("old/models.py", basePython, "new/models.py", newPython);
+      const result = createDiff(
+        "old/models.py",
+        basePython,
+        "new/models.py",
+        newPython,
+      );
       expect(result).toContain("diff --git a/old/models.py b/new/models.py");
     });
   });
@@ -111,161 +118,168 @@ export interface User {
   // Tests with Anthropic
   describe("Anthropic Integration", () => {
     // Skip if no API key
-    (hasAnthropicKey ? it : it.skip)("should generate TypeScript with Anthropic", async () => {
-      const result = await generateTypescript(
-        basePython,
-        newPython,
-        diff,
-        currentTypescript,
-        {
-          provider: "anthropic",
-          model: "claude-3-haiku-20240307",
-          anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-          temperature: 0.1,
-        }
-      );
+    (hasAnthropicKey ? it : it.skip)(
+      "should generate TypeScript with Anthropic",
+      async () => {
+        const result = await generateTypescript(
+          basePython,
+          newPython,
+          diff,
+          currentTypescript,
+          {
+            provider: "anthropic",
+            model: "claude-3-haiku-20240307",
+            anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+            temperature: 0.1,
+          },
+        );
 
-      expect(result).toContain("export interface User");
-      expect(result).toContain("age?:");
-    });
+        expect(result).toContain("export interface User");
+        expect(result).toContain("age?:");
+      },
+    );
 
-    (hasAnthropicKey ? it : it.skip)("should apply custom prompts with Anthropic", async () => {
-      const customPrompt = "Add detailed comments to document the interface";
-      
-      const result = await generateTypescript(
-        basePython,
-        newPython,
-        diff,
-        currentTypescript,
-        {
-          provider: "anthropic",
-          model: "claude-3-haiku-20240307",
-          anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-          temperature: 0.1,
-        },
-        customPrompt
-      );
+    (hasAnthropicKey ? it : it.skip)(
+      "should apply custom prompts with Anthropic",
+      async () => {
+        const customPrompt = "Add detailed comments to document the interface";
 
-      expect(result).toContain("export interface User");
-      // We expect some form of comments with the custom prompt
-      expect(result).toMatch(/\/\/|\/\*|\*/);
-    });
+        const result = await generateTypescript(
+          basePython,
+          newPython,
+          diff,
+          currentTypescript,
+          {
+            provider: "anthropic",
+            model: "claude-3-haiku-20240307",
+            anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+            temperature: 0.1,
+          },
+          customPrompt,
+        );
 
-    (hasAnthropicKey ? it : it.skip)("should respect maxTokens parameter with Anthropic", async () => {
-      const result = await generateTypescript(
-        basePython,
-        newPython,
-        diff,
-        currentTypescript,
-        {
-          provider: "anthropic",
-          model: "claude-3-haiku-20240307",
-          anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-          temperature: 0.1,
-          maxTokens: 2000, // Set explicit max tokens
-        }
-      );
+        expect(result).toContain("export interface User");
+        // We expect some form of comments with the custom prompt
+        expect(result).toMatch(/\/\/|\/\*|\*/);
+      },
+    );
 
-      expect(result).toContain("export interface User");
-    });
+    (hasAnthropicKey ? it : it.skip)(
+      "should respect maxTokens parameter with Anthropic",
+      async () => {
+        const result = await generateTypescript(
+          basePython,
+          newPython,
+          diff,
+          currentTypescript,
+          {
+            provider: "anthropic",
+            model: "claude-3-haiku-20240307",
+            anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+            temperature: 0.1,
+            maxTokens: 2000, // Set explicit max tokens
+          },
+        );
+
+        expect(result).toContain("export interface User");
+      },
+    );
   });
 
   // Tests with OpenAI
   describe("OpenAI Integration", () => {
     // Skip if no API key
-    (hasOpenAIKey ? it : it.skip)("should generate TypeScript with OpenAI", async () => {
-      const result = await generateTypescript(
-        basePython,
-        newPython,
-        diff,
-        currentTypescript,
-        {
-          provider: "openai",
-          model: "gpt-3.5-turbo",
-          openaiApiKey: process.env.OPENAI_API_KEY,
-          temperature: 0.1,
-        }
-      );
+    (hasOpenAIKey ? it : it.skip)(
+      "should generate TypeScript with OpenAI",
+      async () => {
+        const result = await generateTypescript(
+          basePython,
+          newPython,
+          diff,
+          currentTypescript,
+          {
+            provider: "openai",
+            model: "gpt-3.5-turbo",
+            openaiApiKey: process.env.OPENAI_API_KEY,
+            temperature: 0.1,
+          },
+        );
 
-      expect(result).toContain("export interface User");
-      expect(result).toContain("age?:");
-    });
+        expect(result).toContain("export interface User");
+        expect(result).toContain("age?:");
+      },
+    );
 
-    (hasOpenAIKey ? it : it.skip)("should apply custom prompts with OpenAI", async () => {
-      const customPrompt = "Add detailed comments to document the interface";
-      
-      const result = await generateTypescript(
-        basePython,
-        newPython,
-        diff,
-        currentTypescript,
-        {
-          provider: "openai",
-          model: "gpt-3.5-turbo",
-          openaiApiKey: process.env.OPENAI_API_KEY,
-          temperature: 0.1,
-        },
-        customPrompt
-      );
+    (hasOpenAIKey ? it : it.skip)(
+      "should apply custom prompts with OpenAI",
+      async () => {
+        const customPrompt = "Add detailed comments to document the interface";
 
-      expect(result).toContain("export interface User");
-      expect(result).toMatch(/\/\/|\/\*|\*/);
-    });
+        const result = await generateTypescript(
+          basePython,
+          newPython,
+          diff,
+          currentTypescript,
+          {
+            provider: "openai",
+            model: "gpt-3.5-turbo",
+            openaiApiKey: process.env.OPENAI_API_KEY,
+            temperature: 0.1,
+          },
+          customPrompt,
+        );
+
+        expect(result).toContain("export interface User");
+        expect(result).toMatch(/\/\/|\/\*|\*/);
+      },
+    );
   });
 
   // Error cases
   describe("Error handling", () => {
     it("should throw error for missing Anthropic API key", async () => {
-      await expect(generateTypescript(
-        basePython,
-        newPython,
-        diff,
-        currentTypescript,
-        {
+      await expect(
+        generateTypescript(basePython, newPython, diff, currentTypescript, {
           provider: "anthropic",
           model: "claude-3-haiku-20240307",
           temperature: 0.1,
-        }
-      )).rejects.toThrow("Anthropic API key is required");
+        }),
+      ).rejects.toThrow("Anthropic API key is required");
     });
-    
+
     it("should throw error for missing OpenAI API key", async () => {
-      await expect(generateTypescript(
-        basePython,
-        newPython,
-        diff,
-        currentTypescript,
-        {
+      await expect(
+        generateTypescript(basePython, newPython, diff, currentTypescript, {
           provider: "openai",
           model: "gpt-3.5-turbo",
           temperature: 0.1,
-        }
-      )).rejects.toThrow("OpenAI API key is required");
+        }),
+      ).rejects.toThrow("OpenAI API key is required");
     });
-    
+
     it("should throw error for unsupported provider", async () => {
-      await expect(generateTypescript(
-        basePython,
-        newPython,
-        diff,
-        currentTypescript,
-        {
+      await expect(
+        generateTypescript(basePython, newPython, diff, currentTypescript, {
           provider: "unknown-provider",
           model: "test-model",
           temperature: 0.1,
-        }
-      )).rejects.toThrow("Unsupported provider");
+        }),
+      ).rejects.toThrow("Unsupported provider");
     });
   });
 
   // Complex model tests - only run if we have at least one API key
-  (hasAnthropicKey || hasOpenAIKey ? describe : describe.skip)("Complex models", () => {
-    // Choose the available provider
-    const provider = hasAnthropicKey ? "anthropic" : "openai";
-    const model = hasAnthropicKey ? "claude-3-haiku-20240307" : "gpt-3.5-turbo";
-    
-    it("should handle complex Python models with nested structures", async () => {
-      const complexBasePython = `
+  (hasAnthropicKey || hasOpenAIKey ? describe : describe.skip)(
+    "Complex models",
+    () => {
+      // Choose the available provider
+      const provider = hasAnthropicKey ? "anthropic" : "openai";
+      const model = hasAnthropicKey
+        ? "claude-3-haiku-20240307"
+        : "gpt-3.5-turbo";
+
+      it("should handle complex Python models with nested structures", async () => {
+        const complexBasePython = `
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 from enum import Enum
@@ -288,7 +302,7 @@ class User(BaseModel):
     metadata: Dict[str, Any] = {}
 `;
 
-      const complexNewPython = `
+        const complexNewPython = `
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any, Union
 from enum import Enum
@@ -319,7 +333,7 @@ class User(BaseModel):
     created_at: datetime = datetime.now()  # Added field
 `;
 
-      const complexCurrentTypescript = `
+        const complexCurrentTypescript = `
 export enum UserRole {
   ADMIN = "admin",
   USER = "user"
@@ -340,40 +354,41 @@ export interface User {
 }
 `;
 
-      const complexDiff = createDiff(
-        "complex_models.py", 
-        complexBasePython, 
-        "complex_models.py", 
-        complexNewPython
-      );
+        const complexDiff = createDiff(
+          "complex_models.py",
+          complexBasePython,
+          "complex_models.py",
+          complexNewPython,
+        );
 
-      const config = {
-        provider,
-        model,
-        anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-        openaiApiKey: process.env.OPENAI_API_KEY,
-        temperature: 0.1,
-        maxTokens: 4000,
-      };
+        const config = {
+          provider,
+          model,
+          anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+          openaiApiKey: process.env.OPENAI_API_KEY,
+          temperature: 0.1,
+          maxTokens: 4000,
+        };
 
-      const result = await generateTypescript(
-        complexBasePython,
-        complexNewPython,
-        complexDiff,
-        complexCurrentTypescript,
-        config
-      );
+        const result = await generateTypescript(
+          complexBasePython,
+          complexNewPython,
+          complexDiff,
+          complexCurrentTypescript,
+          config,
+        );
 
-      // Check for new enum value
-      expect(result).toContain("GUEST = \"guest\"");
-      
-      // Check for new model
-      expect(result).toContain("export interface PaymentMethod");
-      
-      // Check for modified fields
-      expect(result).toContain("postal_code?:");
-      expect(result).toContain("payment_methods?:");
-      expect(result).toContain("created_at?:");
-    });
-  });
+        // Check for new enum value
+        expect(result).toContain('GUEST = "guest"');
+
+        // Check for new model
+        expect(result).toContain("export interface PaymentMethod");
+
+        // Check for modified fields
+        expect(result).toContain("postal_code?:");
+        expect(result).toContain("payment_methods?:");
+        expect(result).toContain("created_at?:");
+      });
+    },
+  );
 });
