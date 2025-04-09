@@ -95,14 +95,18 @@ jobs:
       - name: Test Local Action
         run: |
           echo "Testing action by executing it directly..."
-          node dist/index.js
+          # Print the version of node
+          node --version
+          # Run with additional debug logging
+          NODE_DEBUG=anthropic,langchain,langsmith node dist/index.js
         env:
           INPUT_BASE-PYTHON-FILE: test-files/base.py
           INPUT_NEW-PYTHON-FILE: test-files/new.py
           INPUT_CURRENT-TYPESCRIPT-FILE: test-files/current.ts
           INPUT_OUTPUT-TYPESCRIPT-FILE: test-files/output/updated.ts
           INPUT_MODEL-PROVIDER: ${{ vars.MODEL_PROVIDER || 'anthropic' }}
-          INPUT_MODEL-NAME: ${{ vars.MODEL_NAME || 'claude-3-haiku-20240307' }}
+          # Try using a different model that might not have the same streaming requirements
+          INPUT_MODEL-NAME: ${{ vars.MODEL_NAME || 'claude-3-7-sonnet-latest' }}
           INPUT_ANTHROPIC-API-KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           INPUT_OPENAI-API-KEY: ${{ secrets.OPENAI_API_KEY }}
           INPUT_TEMPERATURE: 0.1
@@ -151,7 +155,7 @@ jobs:
           current-typescript-file: test-files/current.ts
           output-typescript-file: test-files/output/updated-workflow.ts
           model-provider: ${{ vars.MODEL_PROVIDER || 'anthropic' }}
-          model-name: ${{ vars.MODEL_NAME || 'claude-3-haiku-20240307' }}
+          model-name: ${{ vars.MODEL_NAME || 'claude-3-7-sonnet-latest' }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           temperature: 0.1
@@ -159,4 +163,3 @@ jobs:
           # langsmith-api-key: ${{ secrets.LANGSMITH_API_KEY }}
           # langsmith-project: "action-verification"
           verbose: "true"
-          

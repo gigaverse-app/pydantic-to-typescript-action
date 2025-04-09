@@ -67,7 +67,7 @@ jobs:
         current-typescript-file: frontend-repo/${{ env.OUTPUT_FILE }}
         output-typescript-file: frontend-repo/${{ env.OUTPUT_FILE }}
         model-provider: 'anthropic'
-        model-name: 'claude-3-haiku-20240307'
+        model-name: 'claude-3-7-sonnet-latest'
         anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
         temperature: '0.1'
 

@@ -51,7 +51,7 @@ jobs:
           current-typescript-file: 'src/types/schema.ts'
           output-typescript-file: 'src/types/schema.ts'
           model-provider: 'anthropic'
-          model-name: 'claude-3-haiku-20240307'
+          model-name: 'claude-3-7-sonnet-latest'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           # Optional custom rule/message:
           # custom-prompt: "Completely regenerate the .ts typescript file from the ground up from the new python file"
@@ -141,8 +141,8 @@ jobs:
 | `new-python-file`         | Path to the new Python Pydantic file                                                                                             | Yes      |                                |
 | `current-typescript-file` | Path to the current TypeScript file                                                                                              | Yes      |                                |
 | `output-typescript-file`  | Path to the output TypeScript file                                                                                               | Yes      |                                |
-| `model-provider`          | LLM provider to use (anthropic or openai)                                                                                       | No       | `anthropic`                    |
-| `model-name`              | Specific model to use                                                                                                            | No       | `claude-3-haiku-20240307`      |
+| `model-provider`          | LLM provider to use (anthropic or openai)                                                                                       | No        | `anthropic`                    |
+| `model-name`              | Specific model to use                                                                                                            | No       | `claude-3-7-sonnet-latest`      |
 | `anthropic-api-key`       | Anthropic API key                                                                                                                | No       |                                |
 | `openai-api-key`          | OpenAI API key                                                                                                                   | No       |                                |
 | `temperature`             | Temperature for the LLM (0.0-1.0)                                                                                                | No       | `0.1`                          |
