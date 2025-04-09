@@ -138,7 +138,7 @@ function readPromptFile(filename: string): string {
       if (fs.existsSync(filePath)) {
         return fs.readFileSync(filePath, "utf8").trim();
       }
-    } catch (_err) {
+    } catch {
       // Continue to the next path
     }
   }
