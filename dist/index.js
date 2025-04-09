@@ -45467,6 +45467,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createDiff = createDiff;
 exports.createLLMClient = createLLMClient;
+exports.extractTypescriptCode = extractTypescriptCode;
 exports.generateTypescript = generateTypescript;
 const diff = __importStar(__nccwpck_require__(72823));
 const anthropic_1 = __nccwpck_require__(31929);
@@ -45487,6 +45488,8 @@ ${standardPatch.split("\n").slice(4).join("\n")}`;
  * Create an LLM client based on the provider.
  */
 function createLLMClient(config) {
+    // Default to a high max tokens if not specified
+    const maxTokens = config.maxTokens || 100000;
     if (config.provider === "anthropic") {
         if (!config.anthropicApiKey) {
             throw new Error("Anthropic API key is required when using Anthropic provider");
@@ -45495,6 +45498,7 @@ function createLLMClient(config) {
             apiKey: config.anthropicApiKey,
             modelName: config.model,
             temperature: config.temperature,
+            maxTokens: maxTokens, // Set max tokens to allow larger responses
         });
     }
     else if (config.provider === "openai") {
@@ -45505,6 +45509,7 @@ function createLLMClient(config) {
             apiKey: config.openaiApiKey,
             modelName: config.model,
             temperature: config.temperature,
+            maxTokens: maxTokens, // Set max tokens to allow larger responses
         });
     }
     throw new Error(`Unsupported provider: ${config.provider}`);
