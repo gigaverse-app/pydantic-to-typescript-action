@@ -1,3 +1,6 @@
+name: "Pydantic to TypeScript Converter"
+description: "Convert Python Pydantic models to TypeScript interfaces using LLMs (Claude or GPT) while maintaining styling and conventions"
+
 inputs:
   base-python-file:
     description: 'Path to the base Python Pydantic file'
