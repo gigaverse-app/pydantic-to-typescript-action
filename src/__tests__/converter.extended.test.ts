@@ -26,6 +26,7 @@ describe("converter.ts extended tests", () => {
         apiKey: "test-key",
         modelName: "test-model",
         temperature: 0.5,
+        maxTokens: 100000, // Add this to match the updated implementation
       });
       expect(client).toBeInstanceOf(ChatAnthropic);
     });
@@ -44,8 +45,29 @@ describe("converter.ts extended tests", () => {
         apiKey: "test-key",
         modelName: "test-model",
         temperature: 0.5,
+        maxTokens: 100000, // Add this to match the updated implementation
       });
       expect(client).toBeInstanceOf(ChatOpenAI);
+    });
+
+    it("should create an Anthropic client with custom maxTokens", () => {
+      const config: LLMConfig = {
+        provider: "anthropic",
+        model: "test-model",
+        anthropicApiKey: "test-key",
+        temperature: 0.5,
+        maxTokens: 50000, // Custom value
+      };
+
+      const client = createLLMClient(config);
+
+      expect(ChatAnthropic).toHaveBeenCalledWith({
+        apiKey: "test-key",
+        modelName: "test-model",
+        temperature: 0.5,
+        maxTokens: 50000, // Should use the custom value
+      });
+      expect(client).toBeInstanceOf(ChatAnthropic);
     });
 
     it("should throw an error when Anthropic API key is missing", () => {

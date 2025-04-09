@@ -21,7 +21,8 @@ export type LLMConfig = {
   model: string;
   anthropicApiKey?: string;
   openaiApiKey?: string;
-  temperature: number;
+  temperature?: number;
+  maxTokens?: number;
 };
 
 /**
@@ -50,27 +51,35 @@ ${standardPatch.split("\n").slice(4).join("\n")}`;
  * Create an LLM client based on the provider.
  */
 export function createLLMClient(config: LLMConfig): BaseChatModel {
+  // Default to a high max tokens if not specified
+  const maxTokens = config.maxTokens || 100000;
+
   if (config.provider === "anthropic") {
     if (!config.anthropicApiKey) {
       throw new Error(
         "Anthropic API key is required when using Anthropic provider",
       );
     }
+
     return new ChatAnthropic({
       apiKey: config.anthropicApiKey,
       modelName: config.model,
       temperature: config.temperature,
+      maxTokens: maxTokens, // Set max tokens to allow larger responses
     });
   } else if (config.provider === "openai") {
     if (!config.openaiApiKey) {
       throw new Error("OpenAI API key is required when using OpenAI provider");
     }
+
     return new ChatOpenAI({
       apiKey: config.openaiApiKey,
       modelName: config.model,
       temperature: config.temperature,
+      maxTokens: maxTokens, // Set max tokens to allow larger responses
     });
   }
+
   throw new Error(`Unsupported provider: ${config.provider}`);
 }
 
