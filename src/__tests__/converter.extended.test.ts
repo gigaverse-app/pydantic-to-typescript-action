@@ -28,6 +28,7 @@ describe("converter.ts extended tests", () => {
         temperature: 0.5,
         streaming: true,
         maxTokens: 10000, // Add this to match the updated implementation
+        topP: undefined, // Explicitly avoid the default -1 value which causes API errors
       });
       expect(client).toBeInstanceOf(ChatAnthropic);
     });
@@ -69,6 +70,7 @@ describe("converter.ts extended tests", () => {
         temperature: 0.5,
         maxTokens: 50000, // Should use the custom value
         streaming: true,
+        topP: undefined, // Explicitly avoid the default -1 value which causes API errors
       });
       expect(client).toBeInstanceOf(ChatAnthropic);
     });
@@ -107,6 +109,27 @@ describe("converter.ts extended tests", () => {
       expect(() => createLLMClient(config)).toThrow(
         "Unsupported provider: unsupported-provider",
       );
+    });
+
+    it("should create Anthropic client with topP undefined to avoid API errors", () => {
+      const config: LLMConfig = {
+        provider: "anthropic",
+        model: "claude-3-haiku-20240307",
+        anthropicApiKey: "test-key",
+        temperature: 0.3,
+      };
+
+      const client = createLLMClient(config);
+
+      expect(ChatAnthropic).toHaveBeenCalledWith({
+        apiKey: "test-key",
+        modelName: "claude-3-haiku-20240307",
+        temperature: 0.3,
+        maxTokens: 10000,
+        streaming: true,
+        topP: undefined, // This prevents the default -1 which causes API errors
+      });
+      expect(client).toBeInstanceOf(ChatAnthropic);
     });
   });
 

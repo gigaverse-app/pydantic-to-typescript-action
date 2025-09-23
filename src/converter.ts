@@ -82,6 +82,7 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
       temperature: config.temperature,
       maxTokens: maxTokens,
       streaming: true, // Enable streaming if supported
+      topP: undefined, // Explicitly avoid the default -1 value which causes API errors
     });
   } else if (config.provider === "openai") {
     if (!config.openaiApiKey) {
