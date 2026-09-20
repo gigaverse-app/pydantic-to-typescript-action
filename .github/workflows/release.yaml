@@ -280,11 +280,18 @@ jobs:
           labels: 'version-bump,automated-pr'
 
   release:
-    needs: [build, verify]
+    # version-bump must be in `needs` or `needs.version-bump.outputs` below is always
+    # empty and the workflow_dispatch path silently never releases. always() is then
+    # required because version-bump is skipped on the tag-push path, and a skipped
+    # dependency would otherwise skip this job too.
+    needs: [build, verify, version-bump]
     # Only run on version tags or from workflow dispatch that created a new version
     if: |
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || 
-      (github.event_name == 'workflow_dispatch' && needs.version-bump.outputs.new_version != '')
+      always() &&
+      needs.build.result == 'success' &&
+      needs.verify.result == 'success' &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+       (github.event_name == 'workflow_dispatch' && needs.version-bump.outputs.new_version != ''))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -318,16 +325,17 @@ jobs:
             echo "tag=${{ needs.version-bump.outputs.new_version }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Update major version tag
+      - name: Point the release and major tags at the built commit
         run: |
-          # Get the tag we're using for this release
           RELEASE_TAG="${{ steps.tag_name.outputs.tag }}"
-          
-          # Extract the major version
           MAJOR_VERSION=$(echo "$RELEASE_TAG" | cut -d. -f1)
-          
-          # Create or update the major version tag
-          git tag -f "$MAJOR_VERSION" "$RELEASE_TAG"
+
+          # HEAD is the dist commit made above. version-bump created RELEASE_TAG before
+          # that commit existed, so tagging RELEASE_TAG here would point @v3 (and the
+          # version tag) at a tree whose dist/ predates this build.
+          git tag -f "$RELEASE_TAG" HEAD
+          git tag -f "$MAJOR_VERSION" HEAD
+          git push -f origin "$RELEASE_TAG"
           git push -f origin "$MAJOR_VERSION"
 
       - name: Release
