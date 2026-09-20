@@ -140,6 +140,39 @@ describe("index.ts", () => {
     );
   });
 
+  it("omits temperature from the model config when the input is unset", async () => {
+    // INVARIANT: an unset temperature must not reach the provider. Claude Opus 5/4.8/4.7,
+    // Sonnet 5 and Fable reject sampling parameters with a 400, so a forced default
+    // would make those models unusable through this action.
+    (core.getInput as jest.Mock).mockImplementation((name: string) => {
+      switch (name) {
+        case "base-python-file":
+          return "base.py";
+        case "new-python-file":
+          return "new.py";
+        case "current-typescript-file":
+          return "current.ts";
+        case "output-typescript-file":
+          return "output.ts";
+        case "model-provider":
+          return "anthropic";
+        case "model-name":
+          return "test-model";
+        case "temperature":
+          return "";
+        case "anthropic-api-key":
+          return "test-key";
+        default:
+          return "";
+      }
+    });
+
+    await run();
+
+    const config = (converter.generateTypescript as jest.Mock).mock.calls[0][4];
+    expect(config.temperature).toBeUndefined();
+  });
+
   it("should handle file not found errors", async () => {
     // Setup mock to simulate a file not found
     (fs.access as jest.Mock).mockRejectedValueOnce(new Error("File not found"));
