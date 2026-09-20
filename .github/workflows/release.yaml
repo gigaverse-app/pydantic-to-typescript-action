@@ -176,7 +176,10 @@ jobs:
           INPUT_MODEL-NAME: ${{ vars.MODEL_NAME || 'claude-opus-5' }}
           INPUT_ANTHROPIC-API-KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           INPUT_OPENAI-API-KEY: ${{ secrets.OPENAI_API_KEY }}
-          INPUT_TEMPERATURE: 0.1
+          # No INPUT_TEMPERATURE: current models reject sampling parameters
+          # ("temperature is not supported for claude-opus-5 when set to
+          # non-default values"). The smoke test must exercise the same
+          # defaults a normal caller gets.
           INPUT_VERBOSE: "true"
 
       # Verify the output looks correct
