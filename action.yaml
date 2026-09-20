@@ -29,9 +29,11 @@ inputs:
     description: 'OpenAI API key'
     required: false
   temperature:
-    description: 'Temperature for the LLM (0.0-1.0)'
+    description: >-
+      Temperature for the LLM (0.0-1.0). Leave unset to omit the parameter from the
+      request. Models that reject sampling parameters (Claude Opus 5/4.8/4.7,
+      Sonnet 5, Fable) return a 400 if it is sent, so there is no default.
     required: false
-    default: '0.1'
   custom-prompt:
     description: 'Optional custom prompt rule/message to enhance or change default system instructions'
     required: false
