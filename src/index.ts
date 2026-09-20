@@ -61,7 +61,12 @@ export async function run(): Promise<void> {
     // Get optional inputs with defaults
     const modelProvider = core.getInput("model-provider") || "anthropic";
     const modelName = core.getInput("model-name") || "claude-3-7-sonnet-latest";
-    const temperature = parseFloat(core.getInput("temperature") || "0.1");
+    // Left unset, temperature is omitted from the request entirely. Newer models
+    // (Claude Opus 5/4.8/4.7, Sonnet 5, Fable) reject sampling parameters with a 400,
+    // so a forced default would make them unusable through this action.
+    const temperatureInput = core.getInput("temperature").trim();
+    const parsedTemperature = temperatureInput ? parseFloat(temperatureInput) : NaN;
+    const temperature = Number.isNaN(parsedTemperature) ? undefined : parsedTemperature;
     const customPrompt = core.getInput("custom-prompt");
     const verboseInput = core.getInput("verbose");
     const verbose = verboseInput.toLowerCase() !== "false";

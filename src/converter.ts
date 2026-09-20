@@ -79,7 +79,10 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
     return new ChatAnthropic({
       apiKey: config.anthropicApiKey,
       modelName: config.model,
-      temperature: config.temperature,
+      // Only sent when explicitly configured - see action.yaml `temperature`.
+      ...(config.temperature !== undefined
+        ? { temperature: config.temperature }
+        : {}),
       maxTokens: maxTokens,
       streaming: true, // Enable streaming if supported
     });
@@ -91,7 +94,10 @@ export function createLLMClient(config: LLMConfig): BaseChatModel {
     return new ChatOpenAI({
       apiKey: config.openaiApiKey,
       modelName: config.model,
-      temperature: config.temperature,
+      // Only sent when explicitly configured - see action.yaml `temperature`.
+      ...(config.temperature !== undefined
+        ? { temperature: config.temperature }
+        : {}),
       maxTokens: maxTokens,
       streaming: true, // Enable streaming
     });
