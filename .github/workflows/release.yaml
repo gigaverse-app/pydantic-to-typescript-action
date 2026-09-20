@@ -173,7 +173,7 @@ jobs:
           INPUT_CURRENT-TYPESCRIPT-FILE: test-files/current.ts
           INPUT_OUTPUT-TYPESCRIPT-FILE: test-files/output/updated.ts
           INPUT_MODEL-PROVIDER: ${{ vars.MODEL_PROVIDER || 'anthropic' }}
-          INPUT_MODEL-NAME: ${{ vars.MODEL_NAME || 'claude-3-7-sonnet-latest' }}
+          INPUT_MODEL-NAME: ${{ vars.MODEL_NAME || 'claude-opus-5' }}
           INPUT_ANTHROPIC-API-KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           INPUT_OPENAI-API-KEY: ${{ secrets.OPENAI_API_KEY }}
           INPUT_TEMPERATURE: 0.1

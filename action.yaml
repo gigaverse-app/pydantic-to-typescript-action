@@ -21,7 +21,7 @@ inputs:
   model-name:
     description: 'Specific model to use'
     required: false
-    default: 'claude-3-7-sonnet-latest'
+    default: 'claude-opus-5'
   anthropic-api-key:
     description: 'Anthropic API key'
     required: false
