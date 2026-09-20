@@ -65,8 +65,12 @@ export async function run(): Promise<void> {
     // (Claude Opus 5/4.8/4.7, Sonnet 5, Fable) reject sampling parameters with a 400,
     // so a forced default would make them unusable through this action.
     const temperatureInput = core.getInput("temperature").trim();
-    const parsedTemperature = temperatureInput ? parseFloat(temperatureInput) : NaN;
-    const temperature = Number.isNaN(parsedTemperature) ? undefined : parsedTemperature;
+    const parsedTemperature = temperatureInput
+      ? parseFloat(temperatureInput)
+      : NaN;
+    const temperature = Number.isNaN(parsedTemperature)
+      ? undefined
+      : parsedTemperature;
     const customPrompt = core.getInput("custom-prompt");
     const verboseInput = core.getInput("verbose");
     const verbose = verboseInput.toLowerCase() !== "false";
