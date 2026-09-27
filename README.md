@@ -1,7 +1,7 @@
 # Python Pydantic to TypeScript LLM Converter
 
 A GitHub Action that uses an LLM (Claude or GPT) to intelligently convert Python Pydantic models to TypeScript interfaces, maintaining styling and conventions.
-> `uses: gigaverse-app/pydantic-to-typescript-action@v2`
+> `uses: gigaverse-app/pydantic-to-typescript-action@v3`
 
 ## Features
 
@@ -13,7 +13,7 @@ A GitHub Action that uses an LLM (Claude or GPT) to intelligently convert Python
 - Accepts an _optional_ custom rule/message for extra generation instructions  
   _(Example: "Completely regenerate the .ts typescript file from the ground up from the new python file")_
 - Supports _optional_ LangSmith tracing: if you provide a LangSmith API key, the action automatically logs LLM calls to LangSmith. You can optionally specify the project name; the run name is set to the base Python file’s name.
-- Verbose logging: when enabled (default is `true`), the system message, user message, and LLM output are printed to the logs for debugging
+- Verbose logging: the system message, user message, and LLM output are printed to the logs for debugging
 
 ## Usage
 
@@ -44,22 +44,20 @@ jobs:
           path: base-repo
 
       - name: Convert Python to TypeScript
-        uses: gigaverse-app/pydantic-to-typescript-action@v2
+        uses: gigaverse-app/pydantic-to-typescript-action@v3
         with:
           base-python-file: 'base-repo/src/models/schema.py'
           new-python-file: 'src/models/schema.py'
           current-typescript-file: 'src/types/schema.ts'
           output-typescript-file: 'src/types/schema.ts'
           model-provider: 'anthropic'
-          model-name: 'claude-3-7-sonnet-latest'
+          model-name: 'claude-opus-5'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           # Optional custom rule/message:
           # custom-prompt: "Completely regenerate the .ts typescript file from the ground up from the new python file"
           # Optional LangSmith tracing (if desired):
           # langsmith-api-key: ${{ secrets.LANGSMITH_API_KEY }}
           # langsmith-project: "my-custom-project"
-          # Optional verbose logging:
-          # verbose: "true"
 ```
 
 ### Workflow for Multiple Repositories
@@ -102,21 +100,20 @@ jobs:
 
       # Convert Python to TypeScript
       - name: Convert Python to TypeScript
-        uses: gigaverse-app/pydantic-to-typescript-action@v2
+        uses: gigaverse-app/pydantic-to-typescript-action@v3
         with:
           base-python-file: 'backend-base-repo/src/models/schema.py'
           new-python-file: 'backend-repo/src/models/schema.py'
           current-typescript-file: 'frontend-repo/src/types/schema.ts'
           output-typescript-file: 'frontend-repo/src/types/schema.ts'
           model-provider: 'anthropic'
+          model-name: 'claude-opus-5'
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           # Optional custom rule/message:
           # custom-prompt: "Add full documentation in pirate speak arrhhh"
           # Optional LangSmith tracing:
           # langsmith-api-key: ${{ secrets.LANGSMITH_API_KEY }}
           # langsmith-project: "my-custom-project"
-          # Optional verbose logging:
-          # verbose: "true"
 
       # Create a PR in the frontend repo
       - name: Create Pull Request
@@ -142,14 +139,13 @@ jobs:
 | `current-typescript-file` | Path to the current TypeScript file                                                                                              | Yes      |                                |
 | `output-typescript-file`  | Path to the output TypeScript file                                                                                               | Yes      |                                |
 | `model-provider`          | LLM provider to use (anthropic or openai)                                                                                       | No        | `anthropic`                    |
-| `model-name`              | Specific model to use                                                                                                            | No       | `claude-3-7-sonnet-latest`      |
+| `model-name`              | Specific model to use (Anthropic Claude or OpenAI)                                                                              | No       | `claude-opus-5`                |
 | `anthropic-api-key`       | Anthropic API key                                                                                                                | No       |                                |
 | `openai-api-key`          | OpenAI API key                                                                                                                   | No       |                                |
-| `temperature`             | Temperature for the LLM (0.0-1.0)                                                                                                | No       | `0.1`                          |
+| `temperature`             | Temperature for the LLM (0.0-1.0). Leave unset to omit it from the request. Models that reject sampling parameters (Claude Opus 5/4.8/4.7, Sonnet 5, Fable) return a 400 if it is sent. | No       |                                |
 | `custom-prompt`           | Optional custom rule/message to be appended as additional instruction to the LLM.                                                | No       |                                |
 | `langsmith-api-key`       | LangSmith API key for tracing LLM calls (optional)                                                                               | No       |                                |
 | `langsmith-project`       | LangSmith project name for tracing; defaults to "pydantic-to-typescript-action" if not provided                                   | No       | `pydantic-to-typescript-action`|
-| `verbose`                 | If `true`, prints the system message, user message, and LLM output to the logs (useful for debugging).                            | No       | `true`                         |
 
 ## LangSmith Tracing
 
@@ -163,7 +159,7 @@ This integration allows you to capture and evaluate each LLM invocation without 
 
 ## Verbose Logging
 
-When the `verbose` option is enabled (default is `true`), the action prints:
+The action prints:
 - The system message sent to the LLM.
 - The user message with dynamic content and any custom prompt.
 - The output received from the LLM.
