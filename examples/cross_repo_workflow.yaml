@@ -29,7 +29,7 @@ jobs:
     steps:
     # Checkout frontend repo (where TypeScript will be updated)
     - name: Checkout frontend repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: yourusername/frontend-repo
         ref: main
@@ -38,14 +38,14 @@ jobs:
 
     # Checkout the PR version of backend repo
     - name: Checkout backend repo (PR version)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: backend-pr
         fetch-depth: 0
 
     # Checkout the base branch version of backend repo
     - name: Checkout backend repo (base version)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: backend-base
         ref: ${{ github.event.inputs.base_branch || github.base_ref || 'main' }}
@@ -60,20 +60,19 @@ jobs:
 
     # Use the Python to TypeScript action
     - name: Convert Python to TypeScript
-      uses: yourusername/pydantic-to-typescript-action@v1
+      uses: gigaverse-app/pydantic-to-typescript-action@v3
       with:
         base-python-file: backend-base/${{ env.TARGET_FILE }}
         new-python-file: backend-pr/${{ env.TARGET_FILE }}
         current-typescript-file: frontend-repo/${{ env.OUTPUT_FILE }}
         output-typescript-file: frontend-repo/${{ env.OUTPUT_FILE }}
         model-provider: 'anthropic'
-        model-name: 'claude-3-7-sonnet-latest'
+        model-name: 'claude-opus-5'
         anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-        temperature: '0.1'
 
     # Create Pull Request in frontend repo
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         token: ${{ secrets.FRONTEND_REPO_PAT }}
         path: frontend-repo
