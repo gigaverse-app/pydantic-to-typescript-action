@@ -1,196 +1,223 @@
-# Python Pydantic to TypeScript LLM Converter
+# Pydantic to TypeScript Converter
 
-A GitHub Action that uses an LLM (Claude or GPT) to intelligently convert Python Pydantic models to TypeScript interfaces, maintaining styling and conventions.
-> `uses: gigaverse-app/pydantic-to-typescript-action@v3`
+[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Pydantic%20to%20TypeScript%20Converter-blue?logo=github)](https://github.com/marketplace/actions/pydantic-to-typescript-converter)
+[![Release](https://img.shields.io/github/v/release/gigaverse-app/pydantic-to-typescript-action)](https://github.com/gigaverse-app/pydantic-to-typescript-action/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/gigaverse-app/pydantic-to-typescript-action)](LICENSE)
 
-## Features
+**Keep your TypeScript types in sync with your Python Pydantic models on every pull request, without giving up the TypeScript you wrote by hand.**
 
-- Compares base and new Python Pydantic models to identify changes
-- Respects existing TypeScript conventions and styling
-- Preserves comments and documentation
-- Supports both Anthropic (Claude) and OpenAI (GPT) models
-- Completely customizable with fine-grained control over the LLM parameters
-- Accepts an _optional_ custom rule/message for extra generation instructions  
-  _(Example: "Completely regenerate the .ts typescript file from the ground up from the new python file")_
-- Supports _optional_ LangSmith tracing: if you provide a LangSmith API key, the action automatically logs LLM calls to LangSmith. You can optionally specify the project name; the run name is set to the base Python file’s name.
-- Verbose logging: the system message, user message, and LLM output are printed to the logs for debugging
+If your API models live in Pydantic and your frontend types are TypeScript, this GitHub Action closes the gap. When a pull request changes a Pydantic model file, the action gives an LLM (Claude by default, or OpenAI) the old models, the new models, the diff and your current TypeScript file. The LLM edits the TypeScript to match. Commit the result to the same PR, or open a pull request in your frontend repository.
 
-## Usage
+## Quick start
 
-### Basic Usage
+1. Add an `ANTHROPIC_API_KEY` secret to your repository.
+2. Make sure the TypeScript file exists. For the first run, an empty file is enough.
+3. Add this workflow as `.github/workflows/sync-types.yml`:
 
 ```yaml
-name: Update TypeScript from Python Models
+name: Sync TypeScript types
 
 on:
   pull_request:
     paths:
-      - 'src/models/*.py'
-  workflow_dispatch:
+      - 'src/models/schema.py'
+
+permissions:
+  contents: write
 
 jobs:
-  update-typescript:
+  sync-types:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      # The PR branch, so the updated types can be pushed back to it
+      - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          ref: ${{ github.head_ref }}
 
-      - name: Checkout Base Branch
-        uses: actions/checkout@v4
+      # The base branch, to diff the models against
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.base_ref }}
-          path: base-repo
+          path: base
 
-      - name: Convert Python to TypeScript
-        uses: gigaverse-app/pydantic-to-typescript-action@v3
+      - uses: gigaverse-app/pydantic-to-typescript-action@v3
         with:
-          base-python-file: 'base-repo/src/models/schema.py'
-          new-python-file: 'src/models/schema.py'
-          current-typescript-file: 'src/types/schema.ts'
-          output-typescript-file: 'src/types/schema.ts'
-          model-provider: 'anthropic'
-          model-name: 'claude-opus-5'
+          base-python-file: base/src/models/schema.py
+          new-python-file: src/models/schema.py
+          current-typescript-file: src/types/schema.ts
+          output-typescript-file: src/types/schema.ts
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Optional custom rule/message:
-          # custom-prompt: "Completely regenerate the .ts typescript file from the ground up from the new python file"
-          # Optional LangSmith tracing (if desired):
-          # langsmith-api-key: ${{ secrets.LANGSMITH_API_KEY }}
-          # langsmith-project: "my-custom-project"
+
+      - name: Commit the updated types
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/types/schema.ts
+          git diff --cached --quiet || git commit -m "chore: sync TypeScript types with Pydantic models"
+          git push
 ```
 
-### Workflow for Multiple Repositories
+This setup works for pull requests from branches in the same repository. Pull requests from forks don't get your secrets or write access.
+
+## Before and after
+
+This is the real output of the action's release smoke test ([`release.yaml`](.github/workflows/release.yaml)) for v3.1.1, run with the default `claude-opus-5`.
+
+A pull request changes the Pydantic models:
+
+```diff
+ from pydantic import BaseModel
+-from typing import List, Optional, Dict
++from typing import List, Optional, Dict, Any
+
+ class Address(BaseModel):
+     street: str
+     city: str
+     zipcode: str
++    country: Optional[str] = None
+
+ class User(BaseModel):
+     id: int
+     name: str
+     email: str
+     addresses: List[Address] = []
++    age: Optional[int] = None
++    metadata: Dict[str, Any] = {}
+```
+
+The action updates the existing TypeScript file in place:
+
+```diff
+ export interface Address {
+   street: string;
+   city: string;
+   zipcode: string;
++  country?: string | null;
+ }
+
+ export interface User {
+   id: number;
+   name: string;
+   email: string;
+   addresses?: Address[];
++  age?: number | null;
++  metadata?: Record<string, any>;
+ }
+```
+
+Only the new fields are added. The existing lines, including the hand-written `addresses?: Address[]`, stay as they were. The output comes from an LLM, so review it like any other change in the PR.
+
+## Why use it
+
+- **It edits your file instead of regenerating it.** The model gets the diff and your current TypeScript, and is told to keep your naming, patterns, comments and TypeScript-only additions. Your hand-tuned types don't get overwritten by a fresh dump.
+- **You don't need a Python environment.** The action reads your models as plain text and never imports or runs them, so the workflow doesn't have to install your backend's dependencies.
+- **It works across repositories.** A backend PR can open the matching frontend PR (see [the example below](#backend-pr-to-frontend-pr)).
+- **You can steer it.** Add project-specific rules with `custom-prompt`, choose the model with `model-name`, or switch to OpenAI with `model-provider: openai`.
+- **You can trace it.** Pass a LangSmith key to record each LLM call.
+
+## Backend PR to frontend PR
+
+When the Python models and the TypeScript types live in different repositories, run the action in the backend repository and open a pull request in the frontend one. `FRONTEND_REPO_PAT` is a token with write access to the frontend repository.
 
 ```yaml
-name: Update Frontend TypeScript from Backend Python Models
+name: Update frontend types from backend models
 
 on:
   pull_request:
     paths:
-      - 'src/models/*.py'
+      - 'src/models/schema.py'
   workflow_dispatch:
 
 jobs:
   update-typescript:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the frontend repo where TS lives
-      - name: Checkout Frontend Repository
-        uses: actions/checkout@v4
+      - name: Checkout frontend repository
+        uses: actions/checkout@v7
         with:
-          repository: yourusername/frontend-repo
+          repository: your-org/frontend-repo
           token: ${{ secrets.FRONTEND_REPO_PAT }}
           path: frontend-repo
 
-      # Checkout the PR version of the backend repo
-      - name: Checkout Backend Repository (PR)
-        uses: actions/checkout@v4
+      - name: Checkout backend repository (PR)
+        uses: actions/checkout@v7
         with:
           path: backend-repo
-          fetch-depth: 0
 
-      # Checkout the base branch of the backend repo
-      - name: Checkout Backend Repository (Base)
-        uses: actions/checkout@v4
+      - name: Checkout backend repository (base)
+        uses: actions/checkout@v7
         with:
-          path: backend-base-repo
           ref: ${{ github.base_ref || 'main' }}
-          fetch-depth: 0
+          path: backend-base-repo
 
-      # Convert Python to TypeScript
       - name: Convert Python to TypeScript
         uses: gigaverse-app/pydantic-to-typescript-action@v3
         with:
-          base-python-file: 'backend-base-repo/src/models/schema.py'
-          new-python-file: 'backend-repo/src/models/schema.py'
-          current-typescript-file: 'frontend-repo/src/types/schema.ts'
-          output-typescript-file: 'frontend-repo/src/types/schema.ts'
-          model-provider: 'anthropic'
-          model-name: 'claude-opus-5'
+          base-python-file: backend-base-repo/src/models/schema.py
+          new-python-file: backend-repo/src/models/schema.py
+          current-typescript-file: frontend-repo/src/types/schema.ts
+          output-typescript-file: frontend-repo/src/types/schema.ts
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Optional custom rule/message:
-          # custom-prompt: "Add full documentation in pirate speak arrhhh"
+          # Optional extra instruction for the model:
+          # custom-prompt: "Add a JSDoc comment to every new field"
           # Optional LangSmith tracing:
           # langsmith-api-key: ${{ secrets.LANGSMITH_API_KEY }}
-          # langsmith-project: "my-custom-project"
+          # langsmith-project: my-project
 
-      # Create a PR in the frontend repo
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+      - name: Open a pull request in the frontend repository
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.FRONTEND_REPO_PAT }}
           path: frontend-repo
-          commit-message: "Update TypeScript definitions via LLM"
-          title: "Update TypeScript schema from Python changes"
+          commit-message: "Update TypeScript types from Python model changes"
+          title: "Update TypeScript types from Python model changes"
           body: |
-            This PR updates the TypeScript schema based on changes in the Python models.
-            Generated by LLM from PR: ${{ github.event.pull_request.html_url || 'Manual trigger' }}
+            Generated from backend PR: ${{ github.event.pull_request.html_url || 'manual trigger' }}
           branch: update-ts-schema
           branch-suffix: timestamp
 ```
 
 ## Inputs
 
-| Input                     | Description                                                                                                                      | Required | Default                        |
-|---------------------------|----------------------------------------------------------------------------------------------------------------------------------|----------|--------------------------------|
-| `base-python-file`        | Path to the base Python Pydantic file                                                                                            | Yes      |                                |
-| `new-python-file`         | Path to the new Python Pydantic file                                                                                             | Yes      |                                |
-| `current-typescript-file` | Path to the current TypeScript file                                                                                              | Yes      |                                |
-| `output-typescript-file`  | Path to the output TypeScript file                                                                                               | Yes      |                                |
-| `model-provider`          | LLM provider to use (anthropic or openai)                                                                                       | No        | `anthropic`                    |
-| `model-name`              | Specific model to use (Anthropic Claude or OpenAI)                                                                              | No       | `claude-opus-5`                |
-| `anthropic-api-key`       | Anthropic API key                                                                                                                | No       |                                |
-| `openai-api-key`          | OpenAI API key                                                                                                                   | No       |                                |
-| `temperature`             | Temperature for the LLM (0.0-1.0). Leave unset to omit it from the request. Models that reject sampling parameters (Claude Opus 5/4.8/4.7, Sonnet 5, Fable) return a 400 if it is sent. | No       |                                |
-| `custom-prompt`           | Optional custom rule/message to be appended as additional instruction to the LLM.                                                | No       |                                |
-| `langsmith-api-key`       | LangSmith API key for tracing LLM calls (optional)                                                                               | No       |                                |
-| `langsmith-project`       | LangSmith project name for tracing; defaults to "pydantic-to-typescript-action" if not provided                                   | No       | `pydantic-to-typescript-action`|
+| Input | Description | Required | Default |
+|---|---|---|---|
+| `base-python-file` | Path to the Pydantic file before the change, usually from a checkout of the base branch | Yes | |
+| `new-python-file` | Path to the Pydantic file after the change | Yes | |
+| `current-typescript-file` | Path to the existing TypeScript file. It must exist; an empty file is fine. | Yes | |
+| `output-typescript-file` | Where to write the updated TypeScript. It is usually the same path as `current-typescript-file`. | Yes | |
+| `model-provider` | `anthropic` or `openai` | No | `anthropic` |
+| `model-name` | Model to use. With `model-provider: openai`, set this to an OpenAI model, because the default is a Claude model. | No | `claude-opus-5` |
+| `anthropic-api-key` | Anthropic API key. Required when `model-provider` is `anthropic`. | No | |
+| `openai-api-key` | OpenAI API key. Required when `model-provider` is `openai`. | No | |
+| `temperature` | Sampling temperature. It is sent only when you set it, because some newer models reject sampling parameters with a 400 error. | No | |
+| `custom-prompt` | An extra instruction added to the prompt, e.g. "Completely regenerate the TypeScript file from the new Python file" | No | |
+| `langsmith-api-key` | Turns on LangSmith tracing for the LLM call | No | |
+| `langsmith-project` | LangSmith project to trace into | No | `pydantic-to-typescript-action` |
 
-## LangSmith Tracing
+The action has no outputs. It writes the updated TypeScript to `output-typescript-file`.
 
-If you provide a `langsmith-api-key`, the action automatically enables LangSmith tracing for your LLM calls. Tracing is activated by setting the following environment variables before executing the LLM:
-- `LANGSMITH_TRACING` is set to `"true"`.
-- `LANGSMITH_API_KEY` is set to your provided API key.
-- `LANGSMITH_PROJECT` is set to your provided project name or defaults to `"pydantic-to-typescript-action"`.
-- `LANGSMITH_RUN` is set to the base Python file’s name (used as the run name).
+## Good to know
 
-This integration allows you to capture and evaluate each LLM invocation without additional configuration steps.
+- Each step converts one Python file into one TypeScript file. To sync more files, add more steps.
+- Each run is limited to 10,000 output tokens, so very large model files can be cut short. Split them if you hit that limit.
+- The TypeScript is written by an LLM. Review the change like any other PR.
 
-## Verbose Logging
+## LangSmith tracing
 
-The action prints:
-- The system message sent to the LLM.
-- The user message with dynamic content and any custom prompt.
-- The output received from the LLM.
-
-These logs can be extremely helpful for debugging or understanding the LLM's behavior.
+When you pass `langsmith-api-key`, the action sets `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY` and `LANGSMITH_PROJECT` before calling the model. If you don't set `langsmith-project`, `LANGSMITH_PROJECT` is `pydantic-to-typescript-action`.
 
 ## Development
 
-### Prerequisites
+Requires Node.js 22 or later, which the current LangChain and OpenAI dependencies need.
 
-- Node.js v16 or higher
-- npm or yarn
-
-### Setup
-
-1. Clone the repository
-2. Install dependencies
-   ```
-   npm install
-   ```
-3. Build the project
-   ```
-   npm run build
-   ```
-
-### Testing
-
-```
+```bash
+npm ci
+npm run build   # bundles src/ into dist/ and copies the prompts
 npm test
 ```
 
+The prompts sent to the model are in [`prompts/`](prompts). See [CONTRIBUTING.md](CONTRIBUTING.md) for the release process.
+
 ## License
 
-MIT
+[MIT](LICENSE)
